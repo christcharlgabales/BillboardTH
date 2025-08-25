@@ -1,0 +1,23 @@
+name: alert_to_divert
+description: Thesis app — login/signup with Supabase
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  google_maps_flutter: ^2.5.0
+  geolocator: ^10.0.0
+  sliding_up_panel: ^2.0.0
+  supabase_flutter: ^2.0.0
+  flutter_dotenv: ^5.1.0
+
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+   # - assets/logo.png   # add any image with this name, or remove the Image.asset() calls
