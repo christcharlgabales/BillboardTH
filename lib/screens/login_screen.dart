@@ -129,11 +129,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: Colors.white,
                     border: Border.all(color: Colors.black, width: 3),
                   ),
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Your logo, design here...
-                    ],
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(50),
+                    child: Image.asset('assets/icon.jpg'),  // Displaying the icon.jpg image here
                   ),
                 ),
                 SizedBox(height: 24),
