@@ -8,6 +8,7 @@ import 'package:geolocator/geolocator.dart';
 import '../models/billboard.dart';
 import 'profile_screen.dart';
 import 'ev_info_screen.dart';
+import 'login_screen.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class MainScreen extends StatefulWidget {
@@ -28,7 +29,7 @@ class _MainScreenState extends State<MainScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final supabaseService = Provider.of<SupabaseService>(context, listen: false);
       supabaseService.loadBillboards();
-      
+
       // Get current user's email
       final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser?.email != null) {
@@ -97,7 +98,11 @@ class _MainScreenState extends State<MainScreen> {
                     icon: Icon(Icons.logout),
                     onPressed: () async {
                       final authService = Provider.of<AuthService>(context, listen: false);
-                      await authService.signOut();
+                      await authService.signOut();  // Sign out the user
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(builder: (context) => LoginScreen()),  // Redirect to LoginScreen
+                      );
                     },
                   ),
                 ],
@@ -328,7 +333,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.warning),
-            label: 'ALERT',
+            label: 'Alert',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.local_shipping),

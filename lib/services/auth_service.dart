@@ -17,7 +17,7 @@ class AuthService extends ChangeNotifier {
       notifyListeners();
       return response;
     } catch (e) {
-      throw e;
+      throw Exception('Failed to login: $e');
     }
   }
 
@@ -27,42 +27,74 @@ class AuthService extends ChangeNotifier {
     required String password,
     required String name,
     required String role,
-    required String evRegistrationNo,
+    String? evRegistrationNo,
+    String? evType,
+    String? agency,
+    String? plateNumber,
   }) async {
     try {
+      // Step 1: Create the auth account
       final response = await _supabase.auth.signUp(
         email: email,
         password: password,
       );
+      if (response.user == null) return response; // If signup fails
 
-      if (response.user != null) {
-        // Insert user data into users table
-        await _supabase.from('users').insert({
-          'userid': response.user!.id,
-          'email': email,
-          'name': name,
-          'role': role,
-          'ev_registration_no': evRegistrationNo,
-          'status': 'active',
-          'created_at': DateTime.now().toIso8601String(),
-        });
+      // Step 2: If the role is "Driver", ensure EmergencyVehicle exists
+      if (role.toLowerCase() == 'driver' && evRegistrationNo != null) {
+        // Check if the Emergency Vehicle already exists
+        final existingEV = await _supabase
+            .from('emergencyvehicle')
+            .select()
+            .eq('ev_registration_no', evRegistrationNo)
+            .maybeSingle();  // Use maybeSingle instead of single
+
+        // If not, insert a new emergency vehicle
+        if (existingEV == null) {
+          await _supabase.from('emergencyvehicle').upsert({
+            'ev_registration_no': evRegistrationNo,
+            'ev_type': evType ?? '',
+            'agency': agency ?? '',
+            'plate_number': plateNumber ?? '',
+          });
+        }
       }
+
+      // Step 3: Insert user data into users table
+      final userId = response.user!.id;
+      await _supabase.from('users').upsert({
+        'userid': userId,  // Ensure UUID is treated as a string
+        'email': email,
+        'name': name,
+        'role': role,
+        'ev_registration_no': (role.toLowerCase() == 'driver') ? evRegistrationNo : null,
+        'status': 'active',
+        'created_at': DateTime.now().toIso8601String(),
+      }).eq('userid', userId);  // Handle conflicts based on `userid`
 
       notifyListeners();
       return response;
     } catch (e) {
-      throw e;
+      throw Exception('Failed to sign up: $e');
     }
   }
 
   // Logout method
   Future<void> signOut() async {
-    await _supabase.auth.signOut();
-    notifyListeners();
+    try {
+      await _supabase.auth.signOut();
+      notifyListeners();
+    } catch (e) {
+      throw Exception('Failed to logout: $e');
+    }
   }
 
-  // Password reset
+  // Password reset method
   Future<void> resetPassword(String email) async {
-    await _supabase.auth.resetPasswordForEmail(email);
+    try {
+      await _supabase.auth.resetPasswordForEmail(email);
+    } catch (e) {
+      throw Exception('Failed to reset password: $e');
+    }
   }
 }

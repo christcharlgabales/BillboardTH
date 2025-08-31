@@ -113,7 +113,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView( // Add SingleChildScrollView to avoid overflow
+        child: SingleChildScrollView(  // Allow scrolling to avoid overflow
           child: Padding(
             padding: EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(
