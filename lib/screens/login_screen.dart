@@ -1,105 +1,317 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../services/supabase_service.dart';
 import 'signup_screen.dart';
-import 'home_screen.dart';
+import 'package:supabase/supabase.dart';  // Import Supabase
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final emailCtrl = TextEditingController();
-  final passCtrl = TextEditingController();
-  bool loading = false;
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _login() async {
-    setState(() => loading = true);
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
-      final profile = await AuthService.login(
-        email: emailCtrl.text.trim(),
-        password: passCtrl.text.trim(),
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final response = await authService.signInWithEmail(
+        _emailController.text.trim(),
+        _passwordController.text,
       );
 
-      if (!mounted) return;
-
-      if (profile == null) {
-        _toast('Profile not found.');
-      } else {
-        _toast('Welcome, ${profile['Name'] ?? 'User'}!');
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) =>  HomeScreen()),
-        );
+      if (response.user != null) {
+        // Load user data into SupabaseService
+        final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+        supabaseService.loadUserData(_emailController.text.trim());
       }
-    } catch (e) {
-      _toast('Login failed: $e');
+    } on AuthException catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+      );
+    } catch (error) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('An unexpected error occurred'), backgroundColor: Colors.red),
+      );
     } finally {
-      if (mounted) setState(() => loading = false);
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
-  void _toast(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  void _showForgotPasswordDialog() {
+    final emailController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Reset Password'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Enter your email to reset password:'),
+            SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              decoration: InputDecoration(
+                hintText: 'Email',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (emailController.text.isNotEmpty) {
+                try {
+                  final authService = Provider.of<AuthService>(context, listen: false);
+                  await authService.resetPassword(emailController.text.trim());
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Password reset email sent!')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error sending reset email'), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+            child: Text('Send'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(22),
-          child: Column(
-            children: [
-              Image.asset('assets/logo.png', height: 120, errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-              const SizedBox(height: 16),
-              const Text('ALERT TO DIVERT', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 28),
-              _textField(emailCtrl, 'Email', keyboard: TextInputType.emailAddress),
-              const SizedBox(height: 14),
-              _textField(passCtrl, 'Password', obscure: true),
-              const SizedBox(height: 18),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: loading ? null : _login,
-                  child: Text(loading ? 'LOGGING IN...' : 'LOGIN'),
-                ),
-              ),
-              const SizedBox(height: 18),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text("Don't have an Account?"),
-                  TextButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SignupScreen())),
-                    child: const Text('Sign Up Now!'),
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: SingleChildScrollView( // Add SingleChildScrollView to avoid overflow
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                SizedBox(height: 80),
+                // Logo and Title
+                Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    border: Border.all(color: Colors.black, width: 3),
                   ),
-                ],
-              ),
-            ],
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      // Your logo, design here...
+                    ],
+                  ),
+                ),
+                SizedBox(height: 24),
+                Text(
+                  'ALERT TO DIVERT',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                SizedBox(height: 40),
+                // Login Form
+                Form(
+                  key: _formKey,
+                  child: Container(
+                    padding: EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Text(
+                            'LOGIN',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 2,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 24),
+                        Text(
+                          'Email',
+                          style: TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                        SizedBox(height: 8),
+                        TextFormField(
+                          controller: _emailController,
+                          style: TextStyle(color: Colors.black),
+                          decoration: InputDecoration(
+                            hintText: 'Enter your email',
+                            hintStyle: TextStyle(color: Colors.grey[600]),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your email';
+                            }
+                            if (!value.contains('@')) {
+                              return 'Please enter a valid email';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 16),
+                        Text(
+                          'Password',
+                          style: TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                        SizedBox(height: 8),
+                        TextFormField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          style: TextStyle(color: Colors.black),
+                          decoration: InputDecoration(
+                            hintText: 'Enter your password',
+                            hintStyle: TextStyle(color: Colors.grey[600]),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                color: Colors.grey[600],
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your password';
+                            }
+                            return null;
+                          },
+                        ),
+                        SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Checkbox(
+                              value: false,
+                              onChanged: (bool? value) {},
+                              fillColor: MaterialStateProperty.all(Colors.white),
+                              checkColor: Colors.black,
+                            ),
+                            Text(
+                              'Remember Me',
+                              style: TextStyle(color: Colors.white, fontSize: 12),
+                            ),
+                            Spacer(),
+                            GestureDetector(
+                              onTap: _showForgotPasswordDialog,
+                              child: Text(
+                                'Forgot Password?',
+                                style: TextStyle(color: Colors.white, fontSize: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _login,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.brown[600],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: _isLoading
+                                ? CircularProgressIndicator(color: Colors.white)
+                                : Text(
+                                    'LOGIN',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1,
+                                    ),
+                                  ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: 20),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => SignupScreen()),
+                    );
+                  },
+                  child: Text(
+                    "Don't have an Account? Sign Up Now!",
+                    style: TextStyle(
+                      color: Colors.brown,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 30),
+              ],
+            ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _textField(TextEditingController c, String hint,
-      {bool obscure = false, TextInputType? keyboard}) {
-    return TextField(
-      controller: c,
-      keyboardType: keyboard,
-      obscureText: obscure,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white,
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.black54),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      style: const TextStyle(color: Colors.black),
     );
   }
 }

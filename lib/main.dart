@@ -1,42 +1,70 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:provider/provider.dart';
+import 'services/location_service.dart';
+import 'services/supabase_service.dart';
+import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
-import 'screens/home_screen.dart';
+import 'screens/main_screen.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load .env
-  await dotenv.load(fileName: ".env");
-
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+    url: 'https://dltoysgtyflrzykzoytd.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsdG95c2d0eWZscnp5a3pveXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMjQ3OTQsImV4cCI6MjA3MTcwMDc5NH0.Dxco241Oc7DQi1ZwxvE6jSyEh4qs4ihh09rJ7w-nQgk',
   );
 
-  runApp(const App());
+  runApp(const MyApp());
 }
 
-class App extends StatelessWidget {
-  const App({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final session = Supabase.instance.client.auth.currentSession;
-
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Alert to Divert',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF6E2B2B)),
-        useMaterial3: true,
-        scaffoldBackgroundColor: Colors.black,
-        textTheme: Theme.of(context)
-            .textTheme
-            .apply(bodyColor: Colors.white, displayColor: Colors.white),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => LocationService()),
+        ChangeNotifierProvider(create: (_) => SupabaseService()),
+        ChangeNotifierProvider(create: (_) => AuthService()),
+      ],
+      child: MaterialApp(
+        title: 'Alert to Divert',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primarySwatch: Colors.red,
+          scaffoldBackgroundColor: Colors.white,
+          fontFamily: 'Arial',
+        ),
+        home: AuthWrapper(),
       ),
-      home: session == null ? const LoginScreen() :  HomeScreen(),
+    );
+  }
+}
+
+// ==================== AuthWrapper ====================
+class AuthWrapper extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final authService = Provider.of<AuthService>(context);
+
+    return StreamBuilder<AuthState>(
+      stream: Supabase.instance.client.auth.onAuthStateChange,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final session = snapshot.data?.session;
+        if (session != null) {
+          return MainScreen();
+        } else {
+          return LoginScreen();
+        }
+      },
     );
   }
 }

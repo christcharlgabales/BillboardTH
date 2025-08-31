@@ -1,78 +1,68 @@
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
-final supabase = Supabase.instance.client;
+class AuthService extends ChangeNotifier {
+  final _supabase = Supabase.instance.client;
 
-/// Sign up a user in Supabase Auth + your `users` table.
-/// If role == "Driver", upsert an EmergencyVehicle entry first.
-class AuthService {
-  static Future<String?> signUp({
+  User? get currentUser => _supabase.auth.currentUser;
+  bool get isLoggedIn => currentUser != null;
+
+  // Login method
+  Future<AuthResponse> signInWithEmail(String email, String password) async {
+    try {
+      final response = await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      notifyListeners();
+      return response;
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  // Register method
+  Future<AuthResponse> signUpWithEmail({
     required String email,
     required String password,
     required String name,
     required String role,
-    String? evRegistrationNo,
-    String? evType,
-    String? agency,
-    String? plateNumber,
+    required String evRegistrationNo,
   }) async {
     try {
-      // 1) Create the auth account
-      final authRes = await supabase.auth.signUp(email: email, password: password);
-      if (authRes.user == null) return 'Signup failed.';
+      final response = await _supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
 
-      // 2) If Driver, ensure EmergencyVehicle exists
-      if (role.toLowerCase() == 'driver' && (evRegistrationNo ?? '').isNotEmpty) {
-        await supabase.from('emergencyvehicle').upsert({
+      if (response.user != null) {
+        // Insert user data into users table
+        await _supabase.from('users').insert({
+          'userid': response.user!.id,
+          'email': email,
+          'name': name,
+          'role': role,
           'ev_registration_no': evRegistrationNo,
-          'ev_type': evType ?? '',
-          'agency': agency ?? '',
-          'plate_number': plateNumber ?? '',
-        }, onConflict: 'ev_registration_no');
+          'status': 'active',
+          'created_at': DateTime.now().toIso8601String(),
+        });
       }
 
-      // 3) Insert to custom users table
-      await supabase.from('users').insert({
-        'email': email,
-        'password': password, // ⚠️ store hashed in production; kept to match your schema
-        'name': name,
-        'role': role,
-        'ev_registration_no': role.toLowerCase() == 'driver' ? evRegistrationNo : null,
-        'status': 'active',
-      });
-
-      return null;
-    } on PostgrestException catch (e) {
-      return e.message;
+      notifyListeners();
+      return response;
     } catch (e) {
-      return e.toString();
+      throw e;
     }
   }
 
-  static Future<Map<String, dynamic>?> login({
-    required String email,
-    required String password,
-  }) async {
-    try {
-      final res = await supabase.auth.signInWithPassword(email: email, password: password);
-      if (res.user == null) return null;
-
-      final profile = await supabase
-          .from('users')
-          .select()
-          .eq('email', email)
-          .maybeSingle();
-
-      return profile;
-    } on AuthException catch (e) {
-      throw Exception(e.message);
-    } on PostgrestException catch (e) {
-      throw Exception(e.message);
-    } catch (e) {
-      throw Exception(e.toString());
-    }
+  // Logout method
+  Future<void> signOut() async {
+    await _supabase.auth.signOut();
+    notifyListeners();
   }
 
-  static Future<void> signOut() async {
-    await supabase.auth.signOut();
+  // Password reset
+  Future<void> resetPassword(String email) async {
+    await _supabase.auth.resetPasswordForEmail(email);
   }
 }
