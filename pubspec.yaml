@@ -20,4 +20,5 @@ dev_dependencies:
 flutter:
   uses-material-design: true
   assets:
+  - .env
    # - assets/logo.png   # add any image with this name, or remove the Image.asset() calls

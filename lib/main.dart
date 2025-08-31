@@ -36,7 +36,7 @@ class App extends StatelessWidget {
             .textTheme
             .apply(bodyColor: Colors.white, displayColor: Colors.white),
       ),
-      home: session == null ? const LoginScreen() : const HomeScreen(),
+      home: session == null ? const LoginScreen() :  HomeScreen(),
     );
   }
 }

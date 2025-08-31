@@ -30,7 +30,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         _toast('Welcome, ${profile['Name'] ?? 'User'}!');
         Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          MaterialPageRoute(builder: (_) =>  HomeScreen()),
         );
       }
     } catch (e) {
