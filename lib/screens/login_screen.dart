@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/supabase_service.dart';
 import 'signup_screen.dart';
-import 'package:supabase/supabase.dart'; // Import Supabase
+import 'package:supabase/supabase.dart';  // Import Supabase
 
 class LoginScreen extends StatefulWidget {
   @override
@@ -237,19 +237,22 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                         ),
                         SizedBox(height: 16),
-                        Row(
+                        Column(
                           children: [
-                            Checkbox(
-                              value: false,
-                              onChanged: (bool? value) {},
-                              fillColor: MaterialStateProperty.all(Colors.white),
-                              checkColor: Colors.black,
+                            Row(
+                              children: [
+                                Checkbox(
+                                  value: false,
+                                  onChanged: (bool? value) {},
+                                  fillColor: MaterialStateProperty.all(Colors.white),
+                                  checkColor: Colors.black,
+                                ),
+                                Text(
+                                  'Remember Me',
+                                  style: TextStyle(color: Colors.white, fontSize: 12),
+                                ),
+                              ],
                             ),
-                            Text(
-                              'Remember Me',
-                              style: TextStyle(color: Colors.white, fontSize: 12),
-                            ),
-                            Spacer(),
                             GestureDetector(
                               onTap: _showForgotPasswordDialog,
                               child: Text(
