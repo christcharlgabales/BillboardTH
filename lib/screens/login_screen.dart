@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../services/supabase_service.dart';
 import 'signup_screen.dart';
-import 'package:supabase/supabase.dart';  // Import Supabase
+import 'package:supabase/supabase.dart'; // Import Supabase
 
 class LoginScreen extends StatefulWidget {
   @override
