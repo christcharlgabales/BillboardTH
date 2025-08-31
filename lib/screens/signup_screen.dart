@@ -106,6 +106,7 @@ class _SignupScreenState extends State<SignupScreen> {
             child: Column(
               children: [
                 SizedBox(height: 16),
+                // Adding image as the logo (icon.jpg from assets folder)
                 Container(
                   width: 100,
                   height: 100,
@@ -113,6 +114,10 @@ class _SignupScreenState extends State<SignupScreen> {
                     shape: BoxShape.circle,
                     color: Colors.white,
                     border: Border.all(color: Colors.black, width: 3),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(50),
+                    child: Image.asset('assets/icon.jpg'),  // Displaying the icon.jpg image here
                   ),
                 ),
                 SizedBox(height: 16),
