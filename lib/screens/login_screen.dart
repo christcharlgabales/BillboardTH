@@ -25,38 +25,71 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final response = await authService.signInWithEmail(
-        _emailController.text.trim(),
-        _passwordController.text,
-      );
+  try {
+    print('🔐 Attempting login for: ${_emailController.text.trim()}');
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final response = await authService.signInWithEmail(
+      _emailController.text.trim(),
+      _passwordController.text,
+    );
 
-      if (response.user != null) {
-        // Load user data into SupabaseService
-        final supabaseService = Provider.of<SupabaseService>(context, listen: false);
-        supabaseService.loadUserData(_emailController.text.trim());
+    if (response.user != null) {
+      print('✅ Login successful for: ${response.user!.email}');
+      
+      // Load user data into SupabaseService
+      final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+      await supabaseService.loadUserData(_emailController.text.trim());
+      
+      if (mounted) {
+        // Navigate to main screen and remove all previous routes
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/main',
+          (route) => false,
+        );
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Welcome back!'),
+            backgroundColor: Colors.green,
+          ),
+        );
       }
-    } on AuthException catch (error) {
+    }
+  } on AuthException catch (error) {
+    print('❌ Login failed: ${error.message}');
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text(error.message),
+          backgroundColor: Colors.red,
+        ),
       );
-    } catch (error) {
+    }
+  } catch (error) {
+    print('❌ Unexpected error: $error');
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An unexpected error occurred'), backgroundColor: Colors.red),
+        SnackBar(
+          content: Text('An unexpected error occurred'),
+          backgroundColor: Colors.red,
+        ),
       );
-    } finally {
+    }
+  } finally {
+    if (mounted) {
       setState(() {
         _isLoading = false;
       });
     }
   }
+}
 
   void _showForgotPasswordDialog() {
     final emailController = TextEditingController();
