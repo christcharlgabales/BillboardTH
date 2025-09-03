@@ -174,48 +174,56 @@ class SupabaseService extends ChangeNotifier {
 
   // FIXED: Enhanced manual activation
   Future<bool> manualActivation(int billboardId, String evRegistrationNo, bool isActivating) async {
-    print('🔧 MANUAL ${isActivating ? 'ACTIVATION' : 'DEACTIVATION'} - Billboard: $billboardId');
+  print('🔧 MANUAL ${isActivating ? 'ACTIVATION' : 'DEACTIVATION'} - Billboard: $billboardId');
+  
+  try {
+    final now = DateTime.now();
+    final timestamp = now.toIso8601String();
     
-    try {
-      final now = DateTime.now();
-      final timestamp = now.toIso8601String();
-      
-      // Always log the manual action first
-      final alertLogData = {
-        'date': timestamp.split('T')[0],
-        'time': timestamp.split('T')[1].split('.')[0],
-        'billboardid': billboardId,
+    // Always log the manual action first
+    final alertLogData = {
+      'date': timestamp.split('T')[0],
+      'time': timestamp.split('T')[1].split('.')[0],
+      'billboardid': billboardId,
+      'ev_registration_no': evRegistrationNo,
+      'type_of_activation': isActivating ? 'MANUAL_ACTIVATE' : 'MANUAL_DEACTIVATE',
+      'result': 'SUCCESS',
+      'created_at': timestamp,
+    };
+    
+    await _client.from('alertlog').insert(alertLogData);
+    print('✅ Manual action logged to alertlog');
+
+    // If activating, also add to alerts table
+    if (isActivating) {
+      final alertsData = {
         'ev_registration_no': evRegistrationNo,
-        'type_of_activation': isActivating ? 'MANUAL_ACTIVATE' : 'MANUAL_DEACTIVATE',
-        'result': 'SUCCESS',
-        'created_at': timestamp,
+        'billboard_id': billboardId,
+        'triggered_at': timestamp,
       };
       
-      await _client.from('alertlog').insert(alertLogData);
-      print('✅ Manual action logged to alertlog');
-
-      // If activating, also add to alerts table
-      if (isActivating) {
-        final alertsData = {
-          'ev_registration_no': evRegistrationNo,
-          'billboard_id': billboardId,
-          'triggered_at': timestamp,
-        };
-        
-        await _client.from('alerts').insert(alertsData);
-        print('✅ Manual activation alert inserted');
-      }
-
-      print('✅ Manual ${isActivating ? 'activation' : 'deactivation'} completed');
-      return true;
-      
-    } catch (e) {
-      print('❌ Error in manual activation: $e');
-      await _logFailedAttempt(billboardId, evRegistrationNo, 
-          isActivating ? 'MANUAL_ACTIVATE' : 'MANUAL_DEACTIVATE', e.toString());
-      return false;
+      await _client.from('alerts').insert(alertsData);
+      print('✅ Manual activation alert inserted');
+    } else {
+      // For deactivation, remove from alerts table
+      await _client
+        .from('alerts')
+        .delete()
+        .eq('billboard_id', billboardId)
+        .eq('ev_registration_no', evRegistrationNo);
+      print('✅ Manual deactivation - removed from alerts');
     }
+
+    print('✅ Manual ${isActivating ? 'activation' : 'deactivation'} completed');
+    return true;
+    
+  } catch (e) {
+    print('❌ Error in manual activation: $e');
+    await _logFailedAttempt(billboardId, evRegistrationNo, 
+        isActivating ? 'MANUAL_ACTIVATE' : 'MANUAL_DEACTIVATE', e.toString());
+    return false;
   }
+}
 
   // HELPER: Log failed attempts
   Future<void> _logFailedAttempt(int billboardId, String evRegistrationNo, String actionType, String error) async {
@@ -298,12 +306,13 @@ class SupabaseService extends ChangeNotifier {
         location: _billboards[index].location,
         latitude: _billboards[index].latitude,
         longitude: _billboards[index].longitude,
+        createdAt: _billboards[index].createdAt, // Add this line
         isActivated: isActivated,
       );
       notifyListeners();
       print('✅ Billboard $billboardId status updated to: $isActivated');
     }
-  }
+}
 
   // Get billboard by ID
   Billboard? getBillboardById(int billboardId) {
