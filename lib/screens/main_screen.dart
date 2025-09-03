@@ -1,3 +1,4 @@
+//main_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -23,7 +24,9 @@ class _MainScreenState extends State<MainScreen> {
   Set<Marker> _markers = {};
   Billboard? _selectedBillboard;
   bool _isDialogOpen = false;
-  Set<int> _triggeredBillboards = {};
+  
+  // Track active billboards (those currently triggered by proximity)
+  Set<int> _activeBillboards = {};
   bool _isLocationListenerSet = false;
   
   // Performance optimization variables
@@ -34,6 +37,9 @@ class _MainScreenState extends State<MainScreen> {
   static const double _cameraUpdateThreshold = 0.001; // ~100m threshold
   static const Duration _cameraUpdateDelay = Duration(milliseconds: 500);
   static const Duration _markerUpdateDelay = Duration(milliseconds: 300);
+  
+  // Billboard alert constants
+  static const double BILLBOARD_RADIUS = 500.0; // 500 meters
 
   @override
   void initState() {
@@ -41,32 +47,25 @@ class _MainScreenState extends State<MainScreen> {
     _initializeScreen();
   }
 
-  // Separate initialization to avoid blocking the main thread
   void _initializeScreen() async {
-    // Use addPostFrameCallback for non-blocking initialization
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await _loadInitialData();
       _setupLocationListener();
     });
   }
 
-  // Async data loading to prevent blocking
   Future<void> _loadInitialData() async {
     try {
       final supabaseService = Provider.of<SupabaseService>(context, listen: false);
       
-      // Load billboards only if empty
       if (supabaseService.billboards.isEmpty) {
         await supabaseService.loadBillboards();
       }
 
-      // Load user data asynchronously
       final currentUser = Supabase.instance.client.auth.currentUser;
       if (currentUser?.email != null) {
-        // Don't await this to prevent blocking
         supabaseService.loadUserData(currentUser!.email!).catchError((error) {
           print('Error loading user data: $error');
-          // Handle the type mismatch error silently
         });
       }
     } catch (e) {
@@ -82,22 +81,108 @@ class _MainScreenState extends State<MainScreen> {
     _isLocationListenerSet = true;
   }
 
-  // Debounced location update to prevent excessive camera updates
   void _onLocationUpdate() {
     final locationService = Provider.of<LocationService>(context, listen: false);
     final supabaseService = Provider.of<SupabaseService>(context, listen: false);
     
     if (locationService.currentPosition != null && locationService.isTracking) {
       _debouncedCameraUpdate(locationService);
-      _checkProximityThrottled(locationService.currentPosition!, supabaseService.billboards);
+      _checkBillboardProximity(locationService.currentPosition!, supabaseService);
     }
   }
 
-  // Debounced camera update to reduce excessive map animations
+  void _checkBillboardProximity(Position userPosition, SupabaseService supabaseService) {
+    if (!mounted) return;
+    
+    final evRegistration = supabaseService.getCurrentEvRegistration();
+    
+    for (Billboard billboard in supabaseService.billboards) {
+      double distance = Geolocator.distanceBetween(
+        userPosition.latitude, 
+        userPosition.longitude,
+        billboard.latitude, 
+        billboard.longitude
+      );
+
+      bool isWithinRadius = distance <= BILLBOARD_RADIUS;
+      bool wasActive = _activeBillboards.contains(billboard.billboardId);
+
+      if (isWithinRadius && !wasActive) {
+        _activateBillboard(billboard, supabaseService, evRegistration);
+      } else if (!isWithinRadius && wasActive) {
+        _deactivateBillboard(billboard, supabaseService, evRegistration);
+      }
+    }
+  }
+
+  void _activateBillboard(Billboard billboard, SupabaseService supabaseService, String evRegistration) {
+    if (!mounted) return;
+    
+    _activeBillboards.add(billboard.billboardId);
+    supabaseService.updateBillboardStatus(billboard.billboardId, true);
+    supabaseService.triggerAlert(billboard.billboardId, evRegistration);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("🚨 EMERGENCY ALERT: Billboard ${billboard.billboardNumber} activated!"),
+        backgroundColor: Colors.red,
+        duration: Duration(seconds: 3),
+      ),
+    );
+    
+    print('✅ Billboard ${billboard.billboardNumber} ACTIVATED (proximity)');
+  }
+
+  void _deactivateBillboard(Billboard billboard, SupabaseService supabaseService, String evRegistration) {
+    if (!mounted) return;
+    
+    _activeBillboards.remove(billboard.billboardId);
+    supabaseService.updateBillboardStatus(billboard.billboardId, false);
+    supabaseService.manualActivation(billboard.billboardId, evRegistration, false);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("✅ Billboard ${billboard.billboardNumber} deactivated (out of range)"),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 2),
+      ),
+    );
+    
+    print('✅ Billboard ${billboard.billboardNumber} DEACTIVATED (out of range)');
+  }
+
+  void _stopAllBillboardAlerts() {
+    if (!mounted) return;
+    
+    final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+    final evRegistration = supabaseService.getCurrentEvRegistration();
+    
+    for (int billboardId in _activeBillboards) {
+      final billboard = supabaseService.getBillboardById(billboardId);
+      if (billboard != null) {
+        supabaseService.updateBillboardStatus(billboardId, false);
+        supabaseService.manualActivation(billboardId, evRegistration, false);
+      }
+    }
+    
+    _activeBillboards.clear();
+    
+    if (_activeBillboards.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("🔴 All billboard alerts stopped"),
+          backgroundColor: Colors.grey,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+    
+    print('🔴 All billboard alerts stopped due to tracking stop');
+  }
+
   void _debouncedCameraUpdate(LocationService locationService) {
     final currentPos = locationService.currentPosition!;
     
-    // Check if camera update is needed (significant position change)
     if (_lastCameraPosition != null) {
       double distance = Geolocator.distanceBetween(
         _lastCameraPosition!.latitude,
@@ -106,7 +191,6 @@ class _MainScreenState extends State<MainScreen> {
         currentPos.longitude,
       );
       
-      // Only update if moved more than threshold
       if (distance < 100) return; // 100 meters
     }
     
@@ -128,7 +212,6 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   void dispose() {
-    // Clean up timers and listeners
     _cameraUpdateTimer?.cancel();
     _markerUpdateTimer?.cancel();
     
@@ -162,7 +245,6 @@ class _MainScreenState extends State<MainScreen> {
   Widget _buildAlertScreen() {
     return Consumer2<LocationService, SupabaseService>(
       builder: (context, locationService, supabaseService, child) {
-        // Debounced marker updates
         _debouncedMarkerUpdate(supabaseService.billboards);
 
         return Column(
@@ -179,9 +261,7 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  // Debounced marker update to prevent excessive rebuilds
   void _debouncedMarkerUpdate(List<Billboard> billboards) {
-    // Check if billboards actually changed
     if (_lastBillboardsState != null && _billboardsEqual(_lastBillboardsState!, billboards)) {
       return;
     }
@@ -195,7 +275,6 @@ class _MainScreenState extends State<MainScreen> {
     });
   }
 
-  // Helper method to compare billboard states
   bool _billboardsEqual(List<Billboard> list1, List<Billboard> list2) {
     if (list1.length != list2.length) return false;
     
@@ -252,6 +331,18 @@ class _MainScreenState extends State<MainScreen> {
               style: TextStyle(fontSize: 12),
             ),
           ),
+          if (_activeBillboards.isNotEmpty)
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '${_activeBillboards.length} Active',
+                style: TextStyle(color: Colors.white, fontSize: 10),
+              ),
+            ),
         ],
       ),
     );
@@ -269,7 +360,6 @@ class _MainScreenState extends State<MainScreen> {
         child: GoogleMap(
           onMapCreated: (GoogleMapController controller) {
             _mapController = controller;
-            // Initial marker load
             if (supabaseService.billboards.isNotEmpty) {
               _updateMarkers(supabaseService.billboards);
             }
@@ -284,7 +374,6 @@ class _MainScreenState extends State<MainScreen> {
           myLocationEnabled: true,
           myLocationButtonEnabled: true,
           onTap: _onMapTap,
-          // Performance optimizations
           liteModeEnabled: false,
           mapToolbarEnabled: false,
           zoomControlsEnabled: false,
@@ -307,16 +396,16 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildControlPanel(LocationService locationService) {
     return Container(
-      height: 120, // Fixed height to prevent overflow
+      height: 120,
       padding: EdgeInsets.all(16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             width: double.infinity,
-            height: 50, // Reduced height
+            height: 50,
             child: ElevatedButton(
-              onPressed: locationService.isTracking ? locationService.stopTracking : locationService.startTracking,
+              onPressed: () => _handleTrackingButton(locationService),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Color(0xFF8B4B3B),
                 foregroundColor: Colors.white,
@@ -329,12 +418,12 @@ class _MainScreenState extends State<MainScreen> {
                 children: [
                   Text(
                     locationService.isTracking ? 'STOP' : 'START',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold), // Reduced font size
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   SizedBox(width: 8),
                   Icon(
                     locationService.isTracking ? Icons.stop : Icons.play_arrow,
-                    size: 20, // Reduced icon size
+                    size: 20,
                   ),
                 ],
               ),
@@ -345,7 +434,7 @@ class _MainScreenState extends State<MainScreen> {
             Flexible(
               child: Text(
                 locationService.statusMessage,
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600), // Reduced font size
+                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
@@ -356,7 +445,15 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  // Optimized marker update - only update when necessary
+  void _handleTrackingButton(LocationService locationService) {
+    if (locationService.isTracking) {
+      _stopAllBillboardAlerts();
+      locationService.stopTracking();
+    } else {
+      locationService.startTracking();
+    }
+  }
+
   void _updateMarkers(List<Billboard> billboards) {
     if (!mounted) return;
     
@@ -371,7 +468,6 @@ class _MainScreenState extends State<MainScreen> {
       );
     }).toSet();
     
-    // Only update if markers actually changed
     if (!_markersEqual(_markers, newMarkers)) {
       setState(() {
         _markers = newMarkers;
@@ -386,7 +482,6 @@ class _MainScreenState extends State<MainScreen> {
     _toggleDialog(billboard);
   }
 
-  // Helper method to compare marker sets
   bool _markersEqual(Set<Marker> set1, Set<Marker> set2) {
     if (set1.length != set2.length) return false;
     
@@ -402,58 +497,6 @@ class _MainScreenState extends State<MainScreen> {
       if (!found) return false;
     }
     return true;
-  }
-
-  // Throttled proximity checking
-  Timer? _proximityTimer;
-  void _checkProximityThrottled(Position userPosition, List<Billboard> billboards) {
-    _proximityTimer?.cancel();
-    _proximityTimer = Timer(Duration(milliseconds: 1000), () {
-      _checkProximity(userPosition, billboards);
-    });
-  }
-
-  void _checkProximity(Position userPosition, List<Billboard> billboards) {
-    if (!mounted) return;
-    
-    for (Billboard billboard in billboards) {
-      double distance = Geolocator.distanceBetween(
-        userPosition.latitude, userPosition.longitude,
-        billboard.latitude, billboard.longitude
-      );
-
-      if (distance <= 500) {
-        if (!_triggeredBillboards.contains(billboard.billboardId)) {
-          _triggerBillboardAlert(billboard);
-          _triggeredBillboards.add(billboard.billboardId);
-        }
-      } else {
-        _triggeredBillboards.remove(billboard.billboardId);
-      }
-    }
-  }
-
-  void _triggerBillboardAlert(Billboard billboard) {
-    if (!mounted) return;
-    
-    final supabaseService = Provider.of<SupabaseService>(context, listen: false);
-    final index = supabaseService.billboards.indexWhere(
-      (b) => b.billboardId == billboard.billboardId,
-    );
-
-    if (index != -1) {
-      setState(() {
-        supabaseService.billboards[index].isActivated = true;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("🚨 EMERGENCY ALERT: Billboard ${billboard.billboardNumber} activated!"),
-          backgroundColor: Colors.red,
-          duration: Duration(seconds: 3),
-        ),
-      );
-    }
   }
 
   void _toggleDialog(Billboard billboard) {
@@ -477,14 +520,14 @@ class _MainScreenState extends State<MainScreen> {
           title: Text('Billboard Control'),
           content: Text(
             billboard.isActivated
-                ? 'Do you want to deactivate this billboard?'
+                ? 'Do you want to manually deactivate this billboard?'
                 : 'Do you want to manually activate this billboard?'
           ),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _activateOrDeactivateBillboard(billboard);
+                _manualToggleBillboard(billboard);
                 _dismissDialog();
               },
               child: Text(billboard.isActivated ? 'DEACTIVATE' : 'ACTIVATE'),
@@ -500,7 +543,6 @@ class _MainScreenState extends State<MainScreen> {
         );
       },
     ).then((_) {
-      // Ensure dialog state is reset when dismissed
       _dismissDialog();
     });
   }
@@ -513,32 +555,35 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  void _activateOrDeactivateBillboard(Billboard billboard) {
+  void _manualToggleBillboard(Billboard billboard) {
     if (!mounted) return;
     
     final supabaseService = Provider.of<SupabaseService>(context, listen: false);
-    final index = supabaseService.billboards.indexWhere(
-      (b) => b.billboardId == billboard.billboardId,
-    );
-
-    if (index != -1) {
-      setState(() {
-        supabaseService.billboards[index].isActivated =
-            !supabaseService.billboards[index].isActivated;
-      });
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            billboard.isActivated
-                ? "✅ Billboard ${billboard.billboardNumber} manually activated!"
-                : "❌ Billboard ${billboard.billboardNumber} manually deactivated!",
-          ),
-          backgroundColor: billboard.isActivated ? Colors.green : Colors.grey,
-          duration: Duration(seconds: 2),
-        ),
-      );
+    final evRegistration = supabaseService.getCurrentEvRegistration();
+    final newState = !billboard.isActivated;
+    
+    supabaseService.updateBillboardStatus(billboard.billboardId, newState);
+    supabaseService.manualActivation(billboard.billboardId, evRegistration, newState);
+    
+    if (newState) {
+      _activeBillboards.add(billboard.billboardId);
+    } else {
+      _activeBillboards.remove(billboard.billboardId);
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          newState
+              ? "✅ Billboard ${billboard.billboardNumber} manually activated!"
+              : "❌ Billboard ${billboard.billboardNumber} manually deactivated!",
+        ),
+        backgroundColor: newState ? Colors.green : Colors.grey,
+        duration: Duration(seconds: 2),
+      ),
+    );
+    
+    print('🔧 Billboard ${billboard.billboardNumber} manually ${newState ? 'activated' : 'deactivated'}');
   }
 
   @override

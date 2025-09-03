@@ -1,3 +1,5 @@
+//supabase_service.dart
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/billboard.dart';
@@ -15,7 +17,7 @@ class SupabaseService extends ChangeNotifier {
   List<Billboard> get billboards => _billboards;
   EmergencyVehicle? get currentVehicle => _currentVehicle;
   AppUser? get currentUser => _currentUser;
-  SupabaseClient get client => _client; // Added getter for client access
+  SupabaseClient get client => _client;
 
   // Load all billboards from database
   Future<void> loadBillboards() async {
@@ -46,7 +48,7 @@ class SupabaseService extends ChangeNotifier {
           .from('users')
           .select('*')
           .eq('email', email)
-          .maybeSingle(); // Use maybeSingle to handle null case
+          .maybeSingle();
       
       if (userResponse != null) {
         _currentUser = AppUser.fromJson(userResponse);
@@ -66,7 +68,7 @@ class SupabaseService extends ChangeNotifier {
         final vehicleResponse = await _client
             .from('emergencyvehicle')
             .select('*')
-            .eq('ev_registration_no', email) // Assuming email might be the registration number
+            .eq('ev_registration_no', email)
             .maybeSingle();
         
         if (vehicleResponse != null) {
@@ -82,79 +84,155 @@ class SupabaseService extends ChangeNotifier {
     }
   }
 
-  // Enhanced alert triggering with better error handling
+  // FIXED: Enhanced alert triggering with proper error handling
   Future<bool> triggerAlert(int billboardId, String evRegistrationNo) async {
+    print('🚨 TRIGGERING ALERT - Billboard: $billboardId, Vehicle: $evRegistrationNo');
+    
     try {
-      // Insert into alerts table
-      await _client.from('alerts').insert({
+      // Step 1: Verify billboard exists
+      final billboardExists = await _client
+          .from('billboard')
+          .select('billboardid')
+          .eq('billboardid', billboardId)
+          .maybeSingle();
+      
+      if (billboardExists == null) {
+        print('❌ Billboard $billboardId does not exist');
+        return false;
+      }
+
+      // Step 2: Verify emergency vehicle exists  
+      final vehicleExists = await _client
+          .from('emergencyvehicle')
+          .select('ev_registration_no')
+          .eq('ev_registration_no', evRegistrationNo)
+          .maybeSingle();
+      
+      if (vehicleExists == null) {
+        print('❌ Emergency vehicle $evRegistrationNo does not exist');
+        return false;
+      }
+
+      final now = DateTime.now();
+      final timestamp = now.toIso8601String();
+      
+      // Step 3: Insert into alerts table (UUID is auto-generated)
+      print('🔍 Inserting into alerts table...');
+      final alertsData = {
         'ev_registration_no': evRegistrationNo,
         'billboard_id': billboardId,
-        'triggered_at': DateTime.now().toIso8601String(),
-      });
+        'triggered_at': timestamp,
+      };
+      
+      final alertResult = await _client
+          .from('alerts')
+          .insert(alertsData)
+          .select('id'); // Return the generated UUID
+      
+      print('✅ Alert inserted successfully: ${alertResult.first['id']}');
 
-      // Insert into alertlog table
-      await _client.from('alertlog').insert({
-        'date': DateTime.now().toIso8601String().split('T')[0],
-        'time': DateTime.now().toIso8601String().split('T')[1].split('.')[0],
+      // Step 4: Insert into alertlog table (alertid is auto-generated)
+      print('🔍 Inserting into alertlog table...');
+      final alertLogData = {
+        'date': timestamp.split('T')[0], // Extract date part (YYYY-MM-DD)
+        'time': timestamp.split('T')[1].split('.')[0], // Extract time part (HH:MM:SS)
         'billboardid': billboardId,
         'ev_registration_no': evRegistrationNo,
         'type_of_activation': 'PROXIMITY_AUTO',
         'result': 'SUCCESS',
-        'created_at': DateTime.now().toIso8601String(),
-      });
-
-      print('✅ Alert triggered successfully for Billboard $billboardId');
-      return true;
-    } catch (e) {
-      print('❌ Error triggering alert: $e');
+        'created_at': timestamp,
+      };
       
-      // Try to log the failed attempt
-      try {
-        await _client.from('alertlog').insert({
-          'date': DateTime.now().toIso8601String().split('T')[0],
-          'time': DateTime.now().toIso8601String().split('T')[1].split('.')[0],
-          'billboardid': billboardId,
-          'ev_registration_no': evRegistrationNo,
-          'type_of_activation': 'PROXIMITY_AUTO',
-          'result': 'FAILED: $e',
-          'created_at': DateTime.now().toIso8601String(),
-        });
-      } catch (logError) {
-        print('❌ Error logging failed alert: $logError');
+      final logResult = await _client
+          .from('alertlog')
+          .insert(alertLogData)
+          .select('alertid');
+      
+      print('✅ Alert log inserted successfully: ${logResult.first['alertid']}');
+      print('🎉 ALERT TRIGGERED SUCCESSFULLY for Billboard $billboardId');
+      
+      return true;
+      
+    } catch (e) {
+      print('❌ ERROR TRIGGERING ALERT: $e');
+      
+      // Enhanced error logging with more details
+      if (e is PostgrestException) {
+        print('❌ PostgreSQL Error:');
+        print('   Code: ${e.code}');
+        print('   Message: ${e.message}');
+        print('   Details: ${e.details}');
+        print('   Hint: ${e.hint}');
       }
+      
+      // Log the failed attempt to alertlog
+      await _logFailedAttempt(billboardId, evRegistrationNo, 'PROXIMITY_AUTO', e.toString());
       
       return false;
     }
   }
 
-  // Enhanced manual activation
+  // FIXED: Enhanced manual activation
   Future<bool> manualActivation(int billboardId, String evRegistrationNo, bool isActivating) async {
+    print('🔧 MANUAL ${isActivating ? 'ACTIVATION' : 'DEACTIVATION'} - Billboard: $billboardId');
+    
     try {
-      // Insert into alertlog table
-      await _client.from('alertlog').insert({
-        'date': DateTime.now().toIso8601String().split('T')[0],
-        'time': DateTime.now().toIso8601String().split('T')[1].split('.')[0],
+      final now = DateTime.now();
+      final timestamp = now.toIso8601String();
+      
+      // Always log the manual action first
+      final alertLogData = {
+        'date': timestamp.split('T')[0],
+        'time': timestamp.split('T')[1].split('.')[0],
         'billboardid': billboardId,
         'ev_registration_no': evRegistrationNo,
         'type_of_activation': isActivating ? 'MANUAL_ACTIVATE' : 'MANUAL_DEACTIVATE',
         'result': 'SUCCESS',
-        'created_at': DateTime.now().toIso8601String(),
-      });
+        'created_at': timestamp,
+      };
+      
+      await _client.from('alertlog').insert(alertLogData);
+      print('✅ Manual action logged to alertlog');
 
-      // If manually activating, also add to alerts table
+      // If activating, also add to alerts table
       if (isActivating) {
-        await _client.from('alerts').insert({
+        final alertsData = {
           'ev_registration_no': evRegistrationNo,
           'billboard_id': billboardId,
-          'triggered_at': DateTime.now().toIso8601String(),
-        });
+          'triggered_at': timestamp,
+        };
+        
+        await _client.from('alerts').insert(alertsData);
+        print('✅ Manual activation alert inserted');
       }
 
-      print('✅ Manual ${isActivating ? 'activation' : 'deactivation'} logged for Billboard $billboardId');
+      print('✅ Manual ${isActivating ? 'activation' : 'deactivation'} completed');
       return true;
+      
     } catch (e) {
       print('❌ Error in manual activation: $e');
+      await _logFailedAttempt(billboardId, evRegistrationNo, 
+          isActivating ? 'MANUAL_ACTIVATE' : 'MANUAL_DEACTIVATE', e.toString());
       return false;
+    }
+  }
+
+  // HELPER: Log failed attempts
+  Future<void> _logFailedAttempt(int billboardId, String evRegistrationNo, String actionType, String error) async {
+    try {
+      final now = DateTime.now();
+      await _client.from('alertlog').insert({
+        'date': now.toIso8601String().split('T')[0],
+        'time': now.toIso8601String().split('T')[1].split('.')[0],
+        'billboardid': billboardId,
+        'ev_registration_no': evRegistrationNo,
+        'type_of_activation': actionType,
+        'result': 'FAILED: ${error.length > 100 ? error.substring(0, 100) + "..." : error}',
+        'created_at': now.toIso8601String(),
+      });
+      print('✅ Failed attempt logged');
+    } catch (logError) {
+      print('❌ Could not log failed attempt: $logError');
     }
   }
 
@@ -166,9 +244,9 @@ class SupabaseService extends ChangeNotifier {
           .select('*')
           .eq('ev_registration_no', evRegistrationNo)
           .order('created_at', ascending: false)
-          .limit(20); // Increased limit
+          .limit(20);
       
-      print('✅ Retrieved ${(response as List).length} alert logs');
+      print('✅ Retrieved ${(response as List).length} alert logs for $evRegistrationNo');
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print('❌ Error getting alert logs: $e');
@@ -176,15 +254,16 @@ class SupabaseService extends ChangeNotifier {
     }
   }
 
-  // NEW: Get all alerts for debugging
+  // Get all alerts for debugging
   Future<List<Map<String, dynamic>>> getAllAlerts() async {
     try {
       final response = await _client
           .from('alerts')
-          .select('*, billboard!inner(*)')
+          .select('*')
           .order('triggered_at', ascending: false)
           .limit(50);
       
+      print('✅ Retrieved ${(response as List).length} total alerts');
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print('❌ Error fetching all alerts: $e');
@@ -192,7 +271,7 @@ class SupabaseService extends ChangeNotifier {
     }
   }
 
-  // NEW: Get all alert logs for debugging
+  // Get all alert logs for debugging
   Future<List<Map<String, dynamic>>> getAllAlertLogs() async {
     try {
       final response = await _client
@@ -201,6 +280,7 @@ class SupabaseService extends ChangeNotifier {
           .order('created_at', ascending: false)
           .limit(100);
       
+      print('✅ Retrieved ${(response as List).length} total alert logs');
       return List<Map<String, dynamic>>.from(response);
     } catch (e) {
       print('❌ Error fetching alert logs: $e');
@@ -208,7 +288,7 @@ class SupabaseService extends ChangeNotifier {
     }
   }
 
-  // NEW: Update billboard activation status in local state
+  // Update billboard activation status in local state
   void updateBillboardStatus(int billboardId, bool isActivated) {
     final index = _billboards.indexWhere((b) => b.billboardId == billboardId);
     if (index != -1) {
@@ -221,19 +301,21 @@ class SupabaseService extends ChangeNotifier {
         isActivated: isActivated,
       );
       notifyListeners();
+      print('✅ Billboard $billboardId status updated to: $isActivated');
     }
   }
 
-  // NEW: Get billboard by ID
+  // Get billboard by ID
   Billboard? getBillboardById(int billboardId) {
     try {
       return _billboards.firstWhere((b) => b.billboardId == billboardId);
     } catch (e) {
+      print('❌ Billboard $billboardId not found in local cache');
       return null;
     }
   }
 
-  // NEW: Get current emergency vehicle registration number
+  // Get current emergency vehicle registration number
   String getCurrentEvRegistration() {
     if (_currentVehicle?.evRegistrationNo != null) {
       return _currentVehicle!.evRegistrationNo;
@@ -242,23 +324,84 @@ class SupabaseService extends ChangeNotifier {
     } else {
       // Fallback to current user email
       final currentUser = Supabase.instance.client.auth.currentUser;
-      return currentUser?.email ?? 'UNKNOWN';
+      final fallback = currentUser?.email ?? 'UNKNOWN_VEHICLE';
+      print('⚠️ Using fallback EV registration: $fallback');
+      return fallback;
     }
   }
 
-  // NEW: Check database connection
+  // Test database connection and tables
   Future<bool> testConnection() async {
+    print('🔍 Testing database connection...');
     try {
+      // Test each table
       await _client.from('billboard').select('count').limit(1);
-      print('✅ Database connection successful');
+      print('✅ Billboard table accessible');
+      
+      await _client.from('alerts').select('count').limit(1);
+      print('✅ Alerts table accessible');
+      
+      await _client.from('alertlog').select('count').limit(1);
+      print('✅ AlertLog table accessible');
+      
+      await _client.from('emergencyvehicle').select('count').limit(1);
+      print('✅ EmergencyVehicle table accessible');
+      
+      print('🎉 All database tables accessible');
       return true;
     } catch (e) {
-      print('❌ Database connection failed: $e');
+      print('❌ Database connection test failed: $e');
       return false;
     }
   }
 
-  // NEW: Get statistics
+  // DEBUGGING: Test alert insertion with sample data
+  Future<void> debugTestAlert() async {
+    print('🧪 TESTING ALERT INSERTION...');
+    
+    try {
+      // Get first billboard for testing
+      final billboards = await _client.from('billboard').select('*').limit(1);
+      if (billboards.isEmpty) {
+        print('❌ No billboards found for testing');
+        return;
+      }
+      
+      final testBillboardId = billboards.first['billboardid'];
+      print('🔍 Using test billboard ID: $testBillboardId');
+      
+      // Get first emergency vehicle for testing
+      final vehicles = await _client.from('emergencyvehicle').select('*').limit(1);
+      if (vehicles.isEmpty) {
+        print('❌ No emergency vehicles found for testing');
+        return;
+      }
+      
+      final testEvRegistration = vehicles.first['ev_registration_no'];
+      print('🔍 Using test EV registration: $testEvRegistration');
+      
+      // Test the triggerAlert function
+      final success = await triggerAlert(testBillboardId, testEvRegistration);
+      
+      if (success) {
+        print('🎉 TEST ALERT SUCCESSFUL!');
+        
+        // Check if data was actually inserted
+        final alertCount = await _client.from('alerts').select('count').count();
+        final logCount = await _client.from('alertlog').select('count').count();
+        
+        print('📊 Current alerts count: ${alertCount.count}');
+        print('📊 Current alertlog count: ${logCount.count}');
+      } else {
+        print('❌ TEST ALERT FAILED!');
+      }
+      
+    } catch (e) {
+      print('❌ Debug test error: $e');
+    }
+  }
+
+  // Get statistics
   Future<Map<String, int>> getStatistics() async {
     try {
       final billboardCount = await _client
@@ -276,17 +419,27 @@ class SupabaseService extends ChangeNotifier {
           .select('count')
           .count(CountOption.exact);
 
-      return {
+      final logCount = await _client
+          .from('alertlog')
+          .select('count')
+          .count(CountOption.exact);
+
+      final stats = {
         'billboards': billboardCount.count,
         'alerts': alertCount.count,
         'vehicles': vehicleCount.count,
+        'logs': logCount.count,
       };
+      
+      print('📊 Database Statistics: $stats');
+      return stats;
     } catch (e) {
       print('❌ Error getting statistics: $e');
       return {
         'billboards': 0,
         'alerts': 0,
         'vehicles': 0,
+        'logs': 0,
       };
     }
   }
