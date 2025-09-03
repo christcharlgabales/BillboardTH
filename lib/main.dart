@@ -1,18 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'services/location_service.dart';
 import 'services/supabase_service.dart';
 import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
+import 'screens/signup_screen.dart';
+import 'screens/splash_screen.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Load .env file
+  await dotenv.load(fileName: ".env");
+
+  // Initialize Supabase with env values
   await Supabase.initialize(
-    url: 'https://dltoysgtyflrzykzoytd.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRsdG95c2d0eWZscnp5a3pveXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTYxMjQ3OTQsImV4cCI6MjA3MTcwMDc5NH0.Dxco241Oc7DQi1ZwxvE6jSyEh4qs4ihh09rJ7w-nQgk',
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
   runApp(const MyApp());
@@ -37,33 +45,76 @@ class MyApp extends StatelessWidget {
           scaffoldBackgroundColor: Colors.white,
           fontFamily: 'Arial',
         ),
-        home: AuthWrapper(),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => AuthWrapper(),
+          '/login': (context) => LoginScreen(),
+          '/signup': (context) => SignupScreen(),
+          '/main': (context) => AuthGuard(child: MainScreen()),
+        },
       ),
     );
   }
 }
 
-// ==================== AuthWrapper ====================
-class AuthWrapper extends StatelessWidget {
+// Auth Guard Widget
+class AuthGuard extends StatelessWidget {
+  final Widget child;
+
+  const AuthGuard({Key? key, required this.child}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    final authService = Provider.of<AuthService>(context);
-
     return StreamBuilder<AuthState>(
       stream: Supabase.instance.client.auth.onAuthStateChange,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
+          return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
 
         final session = snapshot.data?.session;
-        if (session != null) {
-          return MainScreen();
-        } else {
-          return LoginScreen();
+        if (session == null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            Navigator.of(context).pushNamedAndRemoveUntil(
+              '/login',
+              (route) => false,
+            );
+          });
+          return const SizedBox.shrink();
         }
+
+        return child;
+      },
+    );
+  }
+}
+
+// Auth Wrapper with Splash Screen
+class AuthWrapper extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<AuthState>(
+      stream: Supabase.instance.client.auth.onAuthStateChange,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
+        final session = snapshot.data?.session;
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (session != null) {
+            Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
+          } else {
+            Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+          }
+        });
+
+        return const SizedBox.shrink();
       },
     );
   }
