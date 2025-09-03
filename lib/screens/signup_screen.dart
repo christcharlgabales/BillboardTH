@@ -33,59 +33,73 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _signup() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedRole == 'Select') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please select a role'), backgroundColor: Colors.red),
-      );
-      return;
-    }
+  if (_selectedRole == 'Select') {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Please select a role'), backgroundColor: Colors.red),
+    );
+    return;
+  }
 
-    setState(() {
-      _isLoading = true;
-    });
+  setState(() {
+    _isLoading = true;
+  });
 
-    try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final response = await authService.signUpWithEmail(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        name: _nameController.text.trim(),
-        role: _selectedRole,
-        evRegistrationNo: _evRegistrationController.text.trim(),
-      );
+  try {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final response = await authService.signUpWithEmail(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      name: _nameController.text.trim(),
+      role: _selectedRole,
+      evRegistrationNo: _evRegistrationController.text.trim(),
+    );
 
-      if (response.user != null) {
+    if (response.user != null) {
+      // Sign out the user immediately after registration
+      await authService.signOut();
+
+      if (mounted) {
+        // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Account created successfully! Please check your email to verify.'),
+          const SnackBar(
+            content: Text('Registration successful! Please login to continue.'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
           ),
         );
 
-        // Navigate back to login after a delay
-        await Future.delayed(Duration(seconds: 2));
-        if (mounted) {
-          Navigator.pop(context);
-        }
+        // Navigate to login screen after a short delay
+        await Future.delayed(const Duration(seconds: 2));
+        
+        // Use pushNamedAndRemoveUntil to clear the navigation stack
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/login',
+          (route) => false,
+        );
       }
-    } on AuthException catch (error) {
+    }
+  } on AuthException catch (error) {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error.message), backgroundColor: Colors.red),
       );
-    } catch (error) {
+    }
+  } catch (error) {
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('An unexpected error occurred: $error'), backgroundColor: Colors.red),
       );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+    }
+  } finally {
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
+}
 
   @override
   Widget build(BuildContext context) {
