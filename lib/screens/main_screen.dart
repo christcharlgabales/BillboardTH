@@ -38,7 +38,7 @@ class _MainScreenState extends State<MainScreen> {
   static const Duration _markerUpdateDelay = Duration(milliseconds: 300);
   
   // Billboard alert constants
-  static const double BILLBOARD_RADIUS = 500.0; // 500 meters
+  static const double BILLBOARD_RADIUS = 500.0; 
 
   @override
   void initState() {
