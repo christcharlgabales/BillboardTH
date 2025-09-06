@@ -57,6 +57,7 @@ class _MainScreenState extends State<MainScreen> {
     try {
       final supabaseService = Provider.of<SupabaseService>(context, listen: false);
       
+      // Test database connection first
       final connectionOk = await supabaseService.testConnection();
       if (!connectionOk) {
         _showError('Database connection failed. Please check your internet connection.');
@@ -71,6 +72,7 @@ class _MainScreenState extends State<MainScreen> {
       if (currentUser?.email != null) {
         await supabaseService.loadUserData(currentUser!.email!);
         
+        // Debug: Check if we have a valid emergency vehicle
         final evRegistration = supabaseService.getCurrentEvRegistration();
         if (evRegistration == 'UNKNOWN_VEHICLE') {
           print('⚠️ Warning: No emergency vehicle registration found');
@@ -120,6 +122,7 @@ class _MainScreenState extends State<MainScreen> {
     
     final evRegistration = supabaseService.getCurrentEvRegistration();
     
+    // Don't check proximity if no valid registration
     if (evRegistration == 'UNKNOWN_VEHICLE') {
       print('⚠️ Skipping proximity check - no valid EV registration');
       return;
