@@ -66,17 +66,24 @@ class _AuthGuardState extends State<AuthGuard> {
   @override
   void initState() {
     super.initState();
-    _checkAuth();
+    // ✅ Fix: Use addPostFrameCallback to defer navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkAuth();
+    });
   }
 
   Future<void> _checkAuth() async {
+    if (!mounted) return;
+
     final authService = Provider.of<AuthService>(context, listen: false);
 
     // Get current session
     final session = Supabase.instance.client.auth.currentSession;
 
     if (session == null) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
       return;
     }
 
@@ -84,6 +91,8 @@ class _AuthGuardState extends State<AuthGuard> {
     if (authService.userRole == null) {
       await authService.loadUserRole();
     }
+
+    if (!mounted) return;
 
     // Role-based navigation
     if (widget.child is AdminDashboard && authService.userRole != 'Administrator') {
@@ -125,10 +134,15 @@ class _AuthWrapperState extends State<AuthWrapper> {
   @override
   void initState() {
     super.initState();
-    _initAuth();
+    // ✅ Fix: Use addPostFrameCallback to defer navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initAuth();
+    });
   }
 
   Future<void> _initAuth() async {
+    if (!mounted) return;
+
     final authService = Provider.of<AuthService>(context, listen: false);
 
     // Check current session
@@ -140,6 +154,8 @@ class _AuthWrapperState extends State<AuthWrapper> {
         await authService.loadUserRole();
       }
 
+      if (!mounted) return;
+
       // Navigate based on role
       if (authService.userRole == 'Administrator') {
         Navigator.of(context).pushNamedAndRemoveUntil('/admin', (route) => false);
@@ -147,12 +163,16 @@ class _AuthWrapperState extends State<AuthWrapper> {
         Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
       }
     } else {
-      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      }
     }
 
-    setState(() {
-      _loading = false;
-    });
+    if (mounted) {
+      setState(() {
+        _loading = false;
+      });
+    }
   }
 
   @override
