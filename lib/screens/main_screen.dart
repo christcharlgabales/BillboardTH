@@ -478,7 +478,7 @@ class _MainScreenState extends State<MainScreen> {
           initialCameraPosition: CameraPosition(
             target: locationService.currentPosition != null
                 ? LatLng(locationService.currentPosition!.latitude, locationService.currentPosition!.longitude)
-                : LatLng(6.9214, 122.0790), // Zamboanga coordinates as fallback
+                : LatLng(8.9475, 125.5406), // Butuan coordinates as fallback
             zoom: 13,
           ),
           markers: _markers,
