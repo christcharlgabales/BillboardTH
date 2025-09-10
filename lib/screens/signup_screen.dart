@@ -101,7 +101,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 }
 
-  @override
+    @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
@@ -114,54 +114,68 @@ class _SignupScreenState extends State<SignupScreen> {
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView( // Added SingleChildScrollView to avoid overflow
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              children: [
-                SizedBox(height: 16),
-                // Adding image as the logo (icon.jpg from assets folder)
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white,
-                    border: Border.all(color: Colors.black, width: 3),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(50),
-                    child: Image.asset('assets/icon.jpg'),  // Displaying the icon.jpg image here
-                  ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            children: [
+              // Reduced vertical spacing
+              SizedBox(height: 8),
+              // Made logo smaller
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white,
+                  border: Border.all(color: Colors.black, width: 3),
                 ),
-                SizedBox(height: 16),
-                Text(
-                  'ALERT TO DIVERT',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.5,
-                  ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(40),
+                  child: Image.asset('assets/icon.jpg'),
                 ),
-                SizedBox(height: 30),
-                // Signup Form
-                Form(
+              ),
+              SizedBox(height: 8),
+              Text(
+                'ALERT TO DIVERT',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                ),
+              ),
+              SizedBox(height: 16),
+              // Wrap form in Expanded to take remaining space
+              Expanded(
+                child: Form(
                   key: _formKey,
                   child: Container(
-                    padding: EdgeInsets.all(24),
+                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                     decoration: BoxDecoration(
                       color: Colors.black87,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        _buildInputField('Name', _nameController, 'Enter your name'),
-                        _buildInputField('Email', _emailController, 'Enter your email', isEmail: true),
-                        _buildInputField('EV Registration', _evRegistrationController, 'Vehicle Registration'),
-                        _buildRoleSelector(),
-                        _buildPasswordField('Password', _passwordController, 'Enter password', _obscurePassword),
-                        _buildPasswordField('Verify Password', _confirmPasswordController, 'Confirm password', _obscureConfirmPassword),
-                        SizedBox(height: 24),
+                        Flexible(
+                          child: ListView(
+                            shrinkWrap: true,
+                            children: [
+                              _buildInputField('Name', _nameController, 'Enter your name'),
+                              SizedBox(height: 8),
+                              _buildInputField('Email', _emailController, 'Enter your email', isEmail: true),
+                              SizedBox(height: 8),
+                              _buildInputField('EV Registration', _evRegistrationController, 'Vehicle Registration'),
+                              SizedBox(height: 8),
+                              _buildRoleSelector(),
+                              SizedBox(height: 8),
+                              _buildPasswordField('Password', _passwordController, 'Enter password', _obscurePassword),
+                              SizedBox(height: 8),
+                              _buildPasswordField('Verify Password', _confirmPasswordController, 'Confirm password', _obscureConfirmPassword),
+                              SizedBox(height: 16),
+                            ],
+                          ),
+                        ),
                         SizedBox(
                           width: double.infinity,
                           height: 48,
@@ -190,8 +204,9 @@ class _SignupScreenState extends State<SignupScreen> {
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+              SizedBox(height: 16),
+            ],
           ),
         ),
       ),
