@@ -27,6 +27,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   
   // Current user info
   String _currentUserName = "Admin User";
+  String _currentUserEmail = "";
   
   @override
   void initState() {
@@ -47,7 +48,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
       // Load current user info
       final currentUser = supabaseService.currentUser;
       if (currentUser != null) {
-        _currentUserName = currentUser.name;
+        setState(() {
+          _currentUserName = currentUser.name;
+          _currentUserEmail = currentUser.email ?? "";
+        });
+      } else {
+        // Fallback to get email from Supabase Auth if AppUser is not available
+        final authUser = supabaseService.client.auth.currentUser;
+        if (authUser != null) {
+          setState(() {
+            _currentUserName = authUser.email?.split('@').first ?? "Admin User";
+            _currentUserEmail = authUser.email ?? "";
+          });
+        }
       }
       
       // Update markers
@@ -96,6 +109,166 @@ class _AdminDashboardState extends State<AdminDashboard> {
         _totalBillboards = 0;
         _alertsTriggeredToday = 0;
       });
+    }
+  }
+
+  Future<void> _showLogoutDialog() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // User must tap button to dismiss
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          title: Row(
+            children: [
+              Icon(Icons.logout, color: Color(0xFF8B4B3B), size: 28),
+              SizedBox(width: 12),
+              Text(
+                'Confirm Logout',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text(
+                  'Are you sure you want to logout?',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'You will be redirected to the login screen.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            SizedBox(width: 8),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Color(0xFF8B4B3B),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: Text(
+                'Logout',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close dialog
+                await _performLogout();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _performLogout() async {
+    final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+    
+    try {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return Center(
+            child: Container(
+              padding: EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B4B3B)),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    'Logging out...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
+      // Perform logout using Supabase auth directly
+      await supabaseService.client.auth.signOut();
+      
+      // Navigate to login screen
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        // Replace '/login' with your actual login route
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/login', // or '/auth' or whatever your login route is
+          (route) => false, // This removes all routes from the stack
+        );
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+        
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Logout failed. Please try again.'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: () {
+                _performLogout(); // Retry logout
+              },
+            ),
+          ),
+        );
+      }
+      print('Error during logout: $e');
     }
   }
 
@@ -176,38 +349,59 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
           
           // User Profile Section
-          Container(
-            padding: EdgeInsets.all(20),
-            child: Row(
-              children: [
-                CircleAvatar(
-                  backgroundColor: Colors.grey[300],
-                  child: Icon(Icons.person, color: Colors.grey[600]),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _showLogoutDialog,
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                margin: EdgeInsets.all(12),
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey[200]!),
                 ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        _currentUserName,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                        overflow: TextOverflow.ellipsis,
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: Color(0xFF8B4B3B),
+                      child: Icon(Icons.person, color: Colors.white, size: 20),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _currentUserName,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: Colors.black87,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            _currentUserEmail.isEmpty ? 'Loading...' : _currentUserEmail,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
-                      Text(
-                        'Admin',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    Icon(
+                      Icons.logout,
+                      color: Colors.grey[500],
+                      size: 18,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ],
@@ -444,6 +638,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
     );
   }
+  
 
   @override
   Widget build(BuildContext context) {

@@ -524,6 +524,60 @@ class SupabaseService extends ChangeNotifier {
       print('❌ Debug test error: $e');
     }
   }
+  Future<void> signOut() async {
+    try {
+      print('🔄 Signing out user...');
+      
+      // Sign out from Supabase Auth
+      await _client.auth.signOut();
+      
+      // Clear all cached user data
+      _currentUser = null;
+      _currentVehicle = null;
+      _billboards = [];
+      
+      // Notify all listeners about the state change
+      notifyListeners();
+      
+      print('✅ User signed out successfully');
+    } catch (e) {
+      print('❌ Error signing out: $e');
+      rethrow; // Re-throw the error so the UI can handle it
+    }
+  }
+
+  /// Signs out the current user from all devices
+  Future<void> signOutFromAllDevices() async {
+    try {
+      print('🔄 Signing out user from all devices...');
+      
+      // Sign out from all devices
+      await _client.auth.signOut(scope: SignOutScope.global);
+      
+      // Clear all cached user data
+      _currentUser = null;
+      _currentVehicle = null;
+      _billboards = [];
+      
+      // Notify all listeners about the state change
+      notifyListeners();
+      
+      print('✅ User signed out from all devices successfully');
+    } catch (e) {
+      print('❌ Error signing out from all devices: $e');
+      rethrow;
+    }
+  }
+
+  /// Check if user is currently signed in
+  bool get isSignedIn {
+    return _client.auth.currentUser != null;
+  }
+
+  /// Get current authenticated user's email
+  String? get currentUserEmail {
+    return _client.auth.currentUser?.email;
+  }
 
   // Get statistics
   Future<Map<String, int>> getStatistics() async {
@@ -568,3 +622,5 @@ class SupabaseService extends ChangeNotifier {
     }
   }
 }
+
+
