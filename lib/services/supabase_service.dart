@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:io';
+import 'package:path/path.dart' as path;
 import '../models/billboard.dart';
 import '../models/emergency_vehicle.dart';
 import '../models/user.dart';
@@ -83,6 +85,119 @@ class SupabaseService extends ChangeNotifier {
       print('❌ Error loading user data: $e');
     }
   }
+
+  // AVATAR UPLOAD FUNCTIONALITY
+  /// Upload user avatar to Supabase Storage and update user record
+  Future<bool> uploadUserAvatar(File imageFile) async {
+    try {
+      if (_currentUser == null) {
+        print('❌ No current user found for avatar upload');
+        return false;
+      }
+
+      // Delete old avatar if exists
+      if (_currentUser!.avatarUrl != null) {
+        await _deleteOldAvatar(_currentUser!.avatarUrl!);
+      }
+
+      // Generate unique filename using user ID and timestamp
+      final String fileExt = path.extension(imageFile.path);
+      final String fileName = '${_currentUser!.userId}_${DateTime.now().millisecondsSinceEpoch}$fileExt';
+      
+      print('🔄 Uploading avatar: $fileName');
+      
+      // Upload to Supabase Storage
+      await _client.storage
+          .from('avatars')
+          .upload('users/$fileName', imageFile);
+
+      // Get public URL
+      final String publicUrl = _client.storage
+          .from('avatars')
+          .getPublicUrl('users/$fileName');
+
+      print('✅ Avatar uploaded, URL: $publicUrl');
+
+      // Update user record in database
+      await _client
+          .from('users')
+          .update({'avatar_url': publicUrl})
+          .eq('userid', _currentUser!.userId);
+
+      // Update local user object
+      _currentUser = _currentUser!.copyWith(avatarUrl: publicUrl);
+      notifyListeners();
+
+      print('✅ Avatar updated successfully for user: ${_currentUser!.name}');
+      return true;
+    } catch (e) {
+      print('❌ Error uploading avatar: $e');
+      return false;
+    }
+  }
+
+  /// Delete old avatar from storage (private helper method)
+  Future<void> _deleteOldAvatar(String avatarUrl) async {
+    try {
+      // Extract file path from URL
+      final uri = Uri.parse(avatarUrl);
+      final segments = uri.pathSegments;
+      final bucketIndex = segments.indexOf('avatars');
+      
+      if (bucketIndex != -1 && bucketIndex < segments.length - 1) {
+        final filePath = segments.sublist(bucketIndex + 1).join('/');
+        await _client.storage.from('avatars').remove([filePath]);
+        print('✅ Old avatar deleted: $filePath');
+      }
+    } catch (e) {
+      print('❌ Error deleting old avatar: $e');
+      // Don't fail the upload if we can't delete the old avatar
+    }
+  }
+
+  /// Update user profile data (including avatar)
+  Future<bool> updateUserProfile({
+    String? name,
+    String? avatarUrl,
+  }) async {
+    try {
+      if (_currentUser == null) {
+        print('❌ No current user found for profile update');
+        return false;
+      }
+
+      Map<String, dynamic> updateData = {};
+      
+      if (name != null) updateData['name'] = name;
+      if (avatarUrl != null) updateData['avatar_url'] = avatarUrl;
+
+      if (updateData.isEmpty) {
+        print('⚠️ No data to update');
+        return false;
+      }
+
+      // Update database
+      await _client
+          .from('users')
+          .update(updateData)
+          .eq('userid', _currentUser!.userId);
+
+      // Update local user object
+      _currentUser = _currentUser!.copyWith(
+        name: name ?? _currentUser!.name,
+        avatarUrl: avatarUrl ?? _currentUser!.avatarUrl,
+      );
+      
+      notifyListeners();
+      print('✅ User profile updated successfully');
+      return true;
+    } catch (e) {
+      print('❌ Error updating user profile: $e');
+      return false;
+    }
+  }
+
+  // EXISTING FUNCTIONALITY CONTINUES...
 
   // FIXED: Enhanced alert triggering with proper error handling
   Future<bool> triggerAlert(int billboardId, String evRegistrationNo) async {

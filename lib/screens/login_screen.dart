@@ -167,7 +167,7 @@ Widget build(BuildContext context) {
                             MaterialPageRoute(builder: (context) => SignupScreen()),
                           ),
                           child: Text(
-                            'Don\'t have an account? Register',
+                            'Don\'t have an account? Register!',
                             style: TextStyle(color: Colors.white70),
                           ),
                         ),

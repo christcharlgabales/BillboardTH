@@ -20,7 +20,7 @@ class _SignupScreenState extends State<SignupScreen> {
   bool _obscureConfirmPassword = true;
   String _selectedRole = 'Select';
 
-  final List<String> _roles = ['Select', 'Driver', 'Administrator', 'Observer'];
+  final List<String> _roles = ['Select', 'Driver', 'Administrator'];
 
   @override
   void dispose() {
@@ -251,21 +251,34 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Widget _buildRoleSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Role',
-          style: TextStyle(color: Colors.white, fontSize: 14),
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'Role',
+        style: TextStyle(color: Colors.white, fontSize: 14),
+      ),
+      SizedBox(height: 8),
+      Container(
+        padding: EdgeInsets.symmetric(horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
         ),
-        SizedBox(height: 8),
-        DropdownButton<String>(
+        child: DropdownButton<String>(
           value: _selectedRole,
           isExpanded: true,
+          dropdownColor: Colors.white, // Background of the dropdown
+          iconEnabledColor: Colors.black, // Dropdown arrow color
+          underline: SizedBox(), // Removes underline
+          style: TextStyle(color: Colors.black, fontSize: 16), // Selected item text style
           items: _roles.map((String role) {
             return DropdownMenuItem<String>(
               value: role,
-              child: Text(role),
+              child: Text(
+                role,
+                style: TextStyle(color: Colors.black), // Text inside dropdown list
+              ),
             );
           }).toList(),
           onChanged: (String? newValue) {
@@ -274,9 +287,11 @@ class _SignupScreenState extends State<SignupScreen> {
             });
           },
         ),
-      ],
-    );
-  }
+      ),
+    ],
+  );
+}
+
 
   Widget _buildPasswordField(String label, TextEditingController controller, String hint, bool obscure) {
     return Column(
