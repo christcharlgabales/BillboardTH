@@ -39,7 +39,7 @@ class MyApp extends StatelessWidget {
           primarySwatch: Colors.red,
           scaffoldBackgroundColor: Colors.white,
         ),
-        initialRoute: '/', // Add this
+        initialRoute: '/',
         routes: {
           '/': (context) => const AuthWrapper(),
           '/login': (context) => LoginScreen(),
@@ -52,98 +52,116 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthGuard extends StatelessWidget {
+class AuthGuard extends StatefulWidget {
   final Widget child;
   const AuthGuard({Key? key, required this.child}) : super(key: key);
 
   @override
-  Widget build(BuildContext context) {
-    return Consumer<AuthService>(
-      builder: (context, authService, _) {
-        return StreamBuilder<AuthState>(
-          stream: Supabase.instance.client.auth.onAuthStateChange,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
-
-            final session = snapshot.data?.session;
-            if (session == null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/login',
-                  (route) => false,
-                );
-              });
-              return const SizedBox.shrink();
-            }
-
-            // Check role-based access
-            if (child is AdminDashboard && authService.userRole != 'Administrator') {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/main',
-                  (route) => false,
-                );
-              });
-              return const SizedBox.shrink();
-            }
-
-            if (child is MainScreen && authService.userRole == 'Administrator') {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                Navigator.of(context).pushNamedAndRemoveUntil(
-                  '/admin',
-                  (route) => false,
-                );
-              });
-              return const SizedBox.shrink();
-            }
-
-            return child;
-          },
-        );
-      },
-    );
-  }
+  State<AuthGuard> createState() => _AuthGuardState();
 }
 
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({Key? key}) : super(key: key);
+class _AuthGuardState extends State<AuthGuard> {
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuth();
+  }
+
+  Future<void> _checkAuth() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+
+    // Get current session
+    final session = Supabase.instance.client.auth.currentSession;
+
+    if (session == null) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+      return;
+    }
+
+    // Load user role if not loaded yet
+    if (authService.userRole == null) {
+      await authService.loadUserRole();
+    }
+
+    // Role-based navigation
+    if (widget.child is AdminDashboard && authService.userRole != 'Administrator') {
+      Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
+      return;
+    }
+
+    if (widget.child is MainScreen && authService.userRole == 'Administrator') {
+      Navigator.of(context).pushNamedAndRemoveUntil('/admin', (route) => false);
+      return;
+    }
+
+    setState(() {
+      _loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthService>(
-      builder: (context, authService, _) {
-        return StreamBuilder<AuthState>(
-          stream: Supabase.instance.client.auth.onAuthStateChange,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
-              );
-            }
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return widget.child;
+  }
+}
 
-            final session = snapshot.data?.session;
-            if (session != null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (authService.userRole == 'Administrator') {
-                  Navigator.of(context).pushNamedAndRemoveUntil('/admin', (route) => false);
-                } else {
-                  Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
-                }
-              });
-            } else {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-              });
-            }
+class AuthWrapper extends StatefulWidget {
+  const AuthWrapper({Key? key}) : super(key: key);
 
-            return const SizedBox.shrink();
-          },
-        );
-      },
-    );
+  @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initAuth();
+  }
+
+  Future<void> _initAuth() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+
+    // Check current session
+    final session = Supabase.instance.client.auth.currentSession;
+
+    if (session != null) {
+      // Load role from Supabase
+      if (authService.userRole == null) {
+        await authService.loadUserRole();
+      }
+
+      // Navigate based on role
+      if (authService.userRole == 'Administrator') {
+        Navigator.of(context).pushNamedAndRemoveUntil('/admin', (route) => false);
+      } else {
+        Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
+      }
+    } else {
+      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+    }
+
+    setState(() {
+      _loading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return const SizedBox.shrink();
   }
 }
