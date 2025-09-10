@@ -23,14 +23,16 @@ class AppUser {
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
     return AppUser(
-      email: json['email'] as String,
-      name: json['name'] as String,
-      role: json['role'] as String,
-      evRegistrationNo: json['ev_registration_no'] as String,
-      status: json['status'] as String,
-      createdAt: DateTime.parse(json['created_at'] as String),
-      userId: json['userid'] as String,
-      avatarUrl: json['avatar_url'] as String?, // Add avatar URL parsing
+      email: json['email'] as String? ?? '', // Handle null with default value
+      name: json['name'] as String? ?? 'Unknown', // Handle null with default value
+      role: json['role'] as String? ?? 'user', // Handle null with default value
+      evRegistrationNo: json['ev_registration_no'] as String? ?? '', // Handle null with default value
+      status: json['status'] as String? ?? 'inactive', // Handle null with default value
+      createdAt: json['created_at'] != null 
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(), // Handle null created_at
+      userId: json['userid'] as String? ?? '', // Handle null with default value
+      avatarUrl: json['avatar_url'] as String?, // This can remain nullable
     );
   }
 
