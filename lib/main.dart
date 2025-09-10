@@ -9,20 +9,15 @@ import 'services/auth_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_screen.dart';
 import 'screens/signup_screen.dart';
-import 'screens/splash_screen.dart';
+import 'admin/dashboard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Load .env file
   await dotenv.load(fileName: ".env");
-
-  // Initialize Supabase with env values
   await Supabase.initialize(
     url: dotenv.env['SUPABASE_URL']!,
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
-
   runApp(const MyApp());
 }
 
@@ -43,78 +38,111 @@ class MyApp extends StatelessWidget {
         theme: ThemeData(
           primarySwatch: Colors.red,
           scaffoldBackgroundColor: Colors.white,
-          fontFamily: 'Arial',
         ),
-        initialRoute: '/',
+        initialRoute: '/', // Add this
         routes: {
-          '/': (context) => AuthWrapper(),
+          '/': (context) => const AuthWrapper(),
           '/login': (context) => LoginScreen(),
           '/signup': (context) => SignupScreen(),
           '/main': (context) => AuthGuard(child: MainScreen()),
+          '/admin': (context) => AuthGuard(child: AdminDashboard()),
         },
       ),
     );
   }
 }
 
-// Auth Guard Widget
 class AuthGuard extends StatelessWidget {
   final Widget child;
-
   const AuthGuard({Key? key, required this.child}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<AuthState>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+    return Consumer<AuthService>(
+      builder: (context, authService, _) {
+        return StreamBuilder<AuthState>(
+          stream: Supabase.instance.client.auth.onAuthStateChange,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
 
-        final session = snapshot.data?.session;
-        if (session == null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            Navigator.of(context).pushNamedAndRemoveUntil(
-              '/login',
-              (route) => false,
-            );
-          });
-          return const SizedBox.shrink();
-        }
+            final session = snapshot.data?.session;
+            if (session == null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/login',
+                  (route) => false,
+                );
+              });
+              return const SizedBox.shrink();
+            }
 
-        return child;
+            // Check role-based access
+            if (child is AdminDashboard && authService.userRole != 'Administrator') {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/main',
+                  (route) => false,
+                );
+              });
+              return const SizedBox.shrink();
+            }
+
+            if (child is MainScreen && authService.userRole == 'Administrator') {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/admin',
+                  (route) => false,
+                );
+              });
+              return const SizedBox.shrink();
+            }
+
+            return child;
+          },
+        );
       },
     );
   }
 }
 
-// Auth Wrapper with Splash Screen
 class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<AuthState>(
-      stream: Supabase.instance.client.auth.onAuthStateChange,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+    return Consumer<AuthService>(
+      builder: (context, authService, _) {
+        return StreamBuilder<AuthState>(
+          stream: Supabase.instance.client.auth.onAuthStateChange,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            }
 
-        final session = snapshot.data?.session;
+            final session = snapshot.data?.session;
+            if (session != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (authService.userRole == 'Administrator') {
+                  Navigator.of(context).pushNamedAndRemoveUntil('/admin', (route) => false);
+                } else {
+                  Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
+                }
+              });
+            } else {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+              });
+            }
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (session != null) {
-            Navigator.of(context).pushNamedAndRemoveUntil('/main', (route) => false);
-          } else {
-            Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-          }
-        });
-
-        return const SizedBox.shrink();
+            return const SizedBox.shrink();
+          },
+        );
       },
     );
   }

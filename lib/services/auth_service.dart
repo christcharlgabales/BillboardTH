@@ -1,27 +1,66 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class AuthService extends ChangeNotifier {
   final _supabase = Supabase.instance.client;
+  String? _userRole;
+  bool _isLoading = false;
 
   User? get currentUser => _supabase.auth.currentUser;
   bool get isLoggedIn => currentUser != null;
+  String? get userRole => _userRole;
+  bool get isLoading => _isLoading;
+  bool get isAdmin => _userRole?.toLowerCase() == 'administrator';
 
-  // Login method
   Future<AuthResponse> signInWithEmail(String email, String password) async {
     try {
+      _isLoading = true;
+      notifyListeners();
+
       final response = await _supabase.auth.signInWithPassword(
         email: email,
         password: password,
       );
-      notifyListeners();
+      
+      if (response.user != null) {
+        // Updated query to handle potential missing user data
+        final userData = await _supabase
+            .from('users')
+            .select('role, userid')
+            .eq('userid', response.user!.id)
+            .maybeSingle(); // Changed from single() to maybeSingle()
+
+        if (userData == null) {
+          await signOut();
+          throw Exception('User account not found');
+        }
+        
+        _userRole = userData['role'];
+        
+        // Platform validation
+        if ((_userRole?.toLowerCase() == 'administrator' && !kIsWeb) ||
+            (_userRole?.toLowerCase() == 'driver' && kIsWeb)) {
+          await signOut();
+          throw Exception(
+            _userRole?.toLowerCase() == 'administrator' 
+              ? 'Administrator access is only available through web browser'
+              : 'Driver access is only available through mobile app'
+          );
+        }
+        
+        notifyListeners();
+      }
+      
       return response;
     } catch (e) {
       throw Exception('Failed to login: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  // Register method
   Future<AuthResponse> signUpWithEmail({
     required String email,
     required String password,
@@ -33,23 +72,32 @@ class AuthService extends ChangeNotifier {
     String? plateNumber,
   }) async {
     try {
-      // Step 1: Create the auth account
+      _isLoading = true;
+      notifyListeners();
+
+      if ((role.toLowerCase() == 'administrator' && !kIsWeb) ||
+          (role.toLowerCase() == 'driver' && kIsWeb)) {
+        throw Exception(
+          role.toLowerCase() == 'administrator' 
+            ? 'Administrator registration is only available through web browser'
+            : 'Driver registration is only available through mobile app'
+        );
+      }
+
       final response = await _supabase.auth.signUp(
         email: email,
         password: password,
       );
-      if (response.user == null) return response; // If signup fails
+      
+      if (response.user == null) return response;
 
-      // Step 2: If the role is "Driver", ensure EmergencyVehicle exists
       if (role.toLowerCase() == 'driver' && evRegistrationNo != null) {
-        // Check if the Emergency Vehicle already exists
         final existingEV = await _supabase
             .from('emergencyvehicle')
             .select()
             .eq('ev_registration_no', evRegistrationNo)
-            .maybeSingle();  // Use maybeSingle instead of single
+            .maybeSingle();
 
-        // If not, insert a new emergency vehicle
         if (existingEV == null) {
           await _supabase.from('emergencyvehicle').upsert({
             'ev_registration_no': evRegistrationNo,
@@ -60,41 +108,64 @@ class AuthService extends ChangeNotifier {
         }
       }
 
-      // Step 3: Insert user data into users table
       final userId = response.user!.id;
       await _supabase.from('users').upsert({
-        'userid': userId,  // Ensure UUID is treated as a string
+        'userid': userId,
         'email': email,
         'name': name,
         'role': role,
         'ev_registration_no': (role.toLowerCase() == 'driver') ? evRegistrationNo : null,
         'status': 'active',
         'created_at': DateTime.now().toIso8601String(),
-      }).eq('userid', userId);  // Handle conflicts based on `userid`
+      });
 
+      _userRole = role;
       notifyListeners();
       return response;
     } catch (e) {
       throw Exception('Failed to sign up: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  // Logout method
   Future<void> signOut() async {
     try {
-      await _supabase.auth.signOut();
+      _isLoading = true;
       notifyListeners();
+      await _supabase.auth.signOut();
+      _userRole = null;
     } catch (e) {
       throw Exception('Failed to logout: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  // Password reset method
   Future<void> resetPassword(String email) async {
     try {
       await _supabase.auth.resetPasswordForEmail(email);
     } catch (e) {
       throw Exception('Failed to reset password: $e');
+    }
+  }
+
+  Future<void> loadUserRole() async {
+    try {
+      if (currentUser != null) {
+        final userData = await _supabase
+            .from('users')
+            .select('role')
+            .eq('userid', currentUser!.id)
+            .single();
+        
+        _userRole = userData['role'];
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error loading user role: $e');
     }
   }
 }
