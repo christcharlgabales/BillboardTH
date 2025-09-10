@@ -581,10 +581,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, Color color, IconData icon, {bool showAlert = false}) {
+ Widget _buildStatCard(String title, String value, Color color, IconData icon, {bool showAlert = false}) {
     return Container(
       height: 120,
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.all(16), // Reduced padding from 20 to 16
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(12),
@@ -599,6 +599,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min, // Added this to prevent overflow
         children: [
           Row(
             children: [
@@ -616,22 +617,34 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ],
             ],
           ),
-          Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+          Expanded( // Changed from Spacer() to Expanded
+            child: Center( // Center the content vertically
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    value,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28, // Reduced from 32 to 28
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 2), // Reduced from 4 to 2
+                  Text(
+                    title,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 13, // Reduced from 14 to 13
+                      fontWeight: FontWeight.w500,
+                    ),
+                    maxLines: 2, // Allow text to wrap if needed
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
             ),
           ),
         ],
