@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
 import '../services/supabase_service.dart';
 import '../models/billboard.dart';
 
@@ -19,11 +20,49 @@ class _BillboardScreenState extends State<BillboardScreen> {
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
   int? _selectedBillboardId;
+  Timer? _refreshTimer;
+  StreamSubscription? _alertsSubscription;
 
   @override
   void initState() {
     super.initState();
     _loadBillboards();
+    _startRealTimeSync();
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    _alertsSubscription?.cancel();
+    super.dispose();
+  }
+
+  void _startRealTimeSync() {
+    // Set up periodic refresh every 30 seconds
+    _refreshTimer = Timer.periodic(Duration(seconds: 30), (timer) {
+      _refreshBillboardStatus();
+    });
+
+    // Set up real-time subscription to alerts table
+    _setupRealtimeSubscription();
+  }
+
+  void _setupRealtimeSubscription() {
+    final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+    
+    try {
+      _alertsSubscription = supabaseService.client
+          .from('alerts')
+          .stream(primaryKey: ['id'])
+          .listen((data) {
+        print('Real-time alert update received: ${data.length} active alerts');
+        _refreshBillboardStatus();
+      });
+      print('Real-time subscription established for alerts table');
+    } catch (e) {
+      print('Failed to set up real-time subscription: $e');
+      // Fall back to periodic refresh only
+    }
   }
 
   Future<void> _loadBillboards() async {
@@ -34,6 +73,7 @@ class _BillboardScreenState extends State<BillboardScreen> {
     try {
       final supabaseService = Provider.of<SupabaseService>(context, listen: false);
       await supabaseService.loadBillboards();
+      await _refreshBillboardStatus(); // Load real status from database
       _updateMarkers(supabaseService.billboards);
       
       setState(() {
@@ -50,6 +90,40 @@ class _BillboardScreenState extends State<BillboardScreen> {
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  Future<void> _refreshBillboardStatus() async {
+    try {
+      final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+      
+      // Get all active alerts from database
+      final activeAlerts = await supabaseService.client
+          .from('alerts')
+          .select('billboard_id');
+      
+      final activeBillboardIds = Set<int>.from(
+        activeAlerts.map((alert) => alert['billboard_id'] as int)
+      );
+      
+      print('Active billboard IDs from database: $activeBillboardIds');
+      
+      // Update local billboard status based on database
+      bool hasChanges = false;
+      for (var billboard in supabaseService.billboards) {
+        bool shouldBeActive = activeBillboardIds.contains(billboard.billboardId);
+        if (billboard.isActivated != shouldBeActive) {
+          supabaseService.updateBillboardStatus(billboard.billboardId, shouldBeActive);
+          hasChanges = true;
+        }
+      }
+      
+      if (hasChanges) {
+        _updateMarkers(supabaseService.billboards);
+        print('Billboard statuses updated from database');
+      }
+    } catch (e) {
+      print('Error refreshing billboard status: $e');
     }
   }
 
@@ -181,19 +255,36 @@ class _BillboardScreenState extends State<BillboardScreen> {
     try {
       final supabaseService = Provider.of<SupabaseService>(context, listen: false);
       final newStatus = !billboard.isActivated;
+      final evRegistration = supabaseService.getCurrentEvRegistration();
       
-      // Update local state
-      supabaseService.updateBillboardStatus(billboard.billboardId, newStatus);
-      
-      // Update markers
-      _updateMarkers(supabaseService.billboards);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Billboard ${billboard.billboardNumber} ${newStatus ? 'activated' : 'deactivated'}'),
-          backgroundColor: Colors.green,
-        ),
+      // Use manual activation method from SupabaseService
+      final success = await supabaseService.manualActivation(
+        billboard.billboardId, 
+        evRegistration, 
+        newStatus
       );
+      
+      if (success) {
+        // Update local state
+        supabaseService.updateBillboardStatus(billboard.billboardId, newStatus);
+        
+        // Update markers
+        _updateMarkers(supabaseService.billboards);
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Billboard ${billboard.billboardNumber} ${newStatus ? 'activated' : 'deactivated'}'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to ${newStatus ? 'activate' : 'deactivate'} billboard'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } catch (e) {
       print('Error toggling billboard status: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -224,8 +315,43 @@ class _BillboardScreenState extends State<BillboardScreen> {
                 ),
               ),
               Spacer(),
+              // Real-time indicator
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.green[100],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Colors.green[300]!),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: Colors.green,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Text(
+                      'Real-time',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.green[700],
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 16),
               IconButton(
-                onPressed: _loadBillboards,
+                onPressed: () {
+                  _loadBillboards();
+                  _refreshBillboardStatus();
+                },
                 icon: Icon(Icons.refresh),
                 tooltip: 'Refresh',
               ),
@@ -387,6 +513,15 @@ class _BillboardScreenState extends State<BillboardScreen> {
                                           style: TextStyle(
                                             fontSize: 16,
                                             fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Spacer(),
+                                        Text(
+                                          'Active: ${_filteredBillboards.where((b) => b.isActivated).length}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.green[700],
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
                                       ],

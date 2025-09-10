@@ -23,24 +23,45 @@ class SupabaseService extends ChangeNotifier {
 
   // Load all billboards from database
   Future<void> loadBillboards() async {
-    try {
-      final response = await _client.from('billboard').select('*').order('billboardid');
+  try {
+    // Step 1: Get all billboards from database
+    final billboardResponse = await _client
+        .from('billboard')
+        .select('*')
+        .order('billboardid');
+    
+    // Step 2: Get all currently active alerts
+    final activeAlertsResponse = await _client
+        .from('alerts')
+        .select('billboard_id');
+    
+    final activeBillboardIds = Set<int>.from(
+      activeAlertsResponse.map((alert) => alert['billboard_id'] as int)
+    );
+    
+    print('Active billboard IDs from alerts table: $activeBillboardIds');
+    
+    // Step 3: Create billboard objects with correct activation status
+    _billboards = (billboardResponse as List<dynamic>).map((data) {
+      final billboardId = data['billboardid'] as int;
+      final isActivated = activeBillboardIds.contains(billboardId);
       
-      _billboards = (response as List<dynamic>).map((data) {
-        return Billboard.fromJson({
-          ...data,
-          'isActivated': false, // Start with all billboards deactivated
-        });
-      }).toList();
-      
-      notifyListeners();
-      print('✅ Loaded ${_billboards.length} billboards from database');
-    } catch (e) {
-      print('❌ Error loading billboards: $e');
-      _billboards = []; // Ensure empty list on error
-      notifyListeners();
-    }
+      return Billboard.fromJson({
+        ...data,
+        'isActivated': isActivated, // Use real status from database
+      });
+    }).toList();
+    
+    notifyListeners();
+    print('✅ Loaded ${_billboards.length} billboards from database');
+    print('✅ Active billboards: ${_billboards.where((b) => b.isActivated).length}');
+    print('✅ Inactive billboards: ${_billboards.where((b) => !b.isActivated).length}');
+  } catch (e) {
+    print('❌ Error loading billboards: $e');
+    _billboards = []; // Ensure empty list on error
+    notifyListeners();
   }
+}
 
   // Load user data by email
   Future<void> loadUserData(String email) async {
