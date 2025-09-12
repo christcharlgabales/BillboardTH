@@ -11,24 +11,20 @@ class EVInfoScreen extends StatelessWidget {
         final isLoading = vehicle == null;
         
         return Scaffold(
-          backgroundColor: Colors.grey[50],
+          backgroundColor: Color(0xFFF5F5F5),
           body: SafeArea(
-            child: SingleChildScrollView(
-              physics: BouncingScrollPhysics(),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(),
-                    SizedBox(height: 32),
-                    
-                    if (isLoading) 
-                      _buildLoadingState()
-                    else
-                      _buildVehicleInfo(vehicle!),
-                  ],
-                ),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildCompactHeader(),
+                  SizedBox(height: 20),
+                  
+                  if (isLoading) 
+                    Expanded(child: _buildLoadingState())
+                  else
+                    Expanded(child: _buildVehicleInfo(vehicle!)),
+                ],
               ),
             ),
           ),
@@ -37,59 +33,57 @@ class EVInfoScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildCompactHeader() {
     return Container(
       width: double.infinity,
-      child: Column(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF8B4B3B), Color(0xFF6D3829)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xFF8B4B3B).withOpacity(0.3),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Color(0xFF1565C0),
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0xFF1565C0).withOpacity(0.2),
-                  blurRadius: 12,
-                  offset: Offset(0, 4),
-                ),
-              ],
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
+            child: Icon(
+              Icons.emergency,
+              color: Color(0xFF8B4B3B),
+              size: 24,
+            ),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
+                Text(
+                  'EMERGENCY VEHICLE',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.local_hospital,
-                    color: Color(0xFF1565C0),
-                    size: 28,
                   ),
                 ),
-                SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Emergency Vehicle',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        'Vehicle Information',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white.withOpacity(0.8),
-                        ),
-                      ),
-                    ],
+                Text(
+                  'Official Vehicle Information',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.white.withOpacity(0.8),
                   ),
                 ),
               ],
@@ -101,54 +95,72 @@ class EVInfoScreen extends StatelessWidget {
   }
 
   Widget _buildLoadingState() {
-    return Column(
-      children: [
-        SizedBox(height: 40),
-        Center(
-          child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1565C0)),
-          ),
+    return Center(
+      child: Container(
+        padding: EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
         ),
-        SizedBox(height: 20),
-        Text(
-          'Loading vehicle information...',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
-          ),
-          textAlign: TextAlign.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B4B3B)),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Loading vehicle information...',
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF8B4B3B),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildVehicleInfo(dynamic vehicle) {
     return Column(
       children: [
-        _buildInfoCard(
-          title: 'Vehicle Type',
-          value: vehicle.evType,
-          icon: Icons.directions_car,
-          color: Color(0xFF2E7D32),
+        Expanded(
+          child: Column(
+            children: [
+              Expanded(
+                child: _buildInfoCard(
+                  title: 'Vehicle Type',
+                  value: vehicle.evType,
+                  icon: Icons.local_shipping,
+                  accentColor: Color(0xFFD32F2F),
+                ),
+              ),
+              SizedBox(height: 12),
+              
+              Expanded(
+                child: _buildInfoCard(
+                  title: 'Agency',
+                  value: vehicle.agency,
+                  icon: Icons.account_balance_outlined,
+                  accentColor: Color(0xFF1976D2),
+                ),
+              ),
+              SizedBox(height: 12),
+              
+              Expanded(
+                child: _buildInfoCard(
+                  title: 'Plate Number',
+                  value: vehicle.plateNumber,
+                  icon: Icons.credit_card,
+                  accentColor: Color(0xFF388E3C),
+                ),
+              ),
+            ],
+          ),
         ),
-        SizedBox(height: 20),
-        
-        _buildInfoCard(
-          title: 'Agency',
-          value: vehicle.agency,
-          icon: Icons.account_balance,
-          color: Color(0xFF1976D2),
-        ),
-        SizedBox(height: 20),
-        
-        _buildInfoCard(
-          title: 'Plate Number',
-          value: vehicle.plateNumber,
-          icon: Icons.confirmation_number,
-          color: Color(0xFF7B1FA2),
-        ),
-        
-        SizedBox(height: 32),
+        SizedBox(height: 16),
         _buildStatusCard(),
       ],
     );
@@ -158,69 +170,72 @@ class EVInfoScreen extends StatelessWidget {
     required String title,
     required String value,
     required IconData icon,
-    required Color color,
+    required Color accentColor,
   }) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: Color(0xFF8B4B3B).withOpacity(0.2),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            blurRadius: 4,
             offset: Offset(0, 2),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  icon,
-                  color: color,
-                  size: 20,
-                ),
-              ),
-              SizedBox(width: 12),
-              Text(
-                title.toUpperCase(),
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.grey[600],
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 12),
           Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: color.withOpacity(0.2),
-                width: 1,
-              ),
+              color: Color(0xFF8B4B3B),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
             ),
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w500,
-                color: Colors.grey[800],
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: accentColor,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                ),
+                SizedBox(width: 8),
+                Text(
+                  title.toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12),
+              alignment: Alignment.center,
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E2E2E),
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
@@ -232,54 +247,52 @@ class EVInfoScreen extends StatelessWidget {
   Widget _buildStatusCard() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(20),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFF4CAF50), Color(0xFF2E7D32)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+          colors: [Color(0xFF388E3C), Color(0xFF2E7D32)],
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
-            color: Color(0xFF4CAF50).withOpacity(0.3),
-            blurRadius: 12,
-            offset: Offset(0, 4),
+            color: Color(0xFF388E3C).withOpacity(0.3),
+            blurRadius: 6,
+            offset: Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(12),
+            padding: EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(
-              Icons.check_circle,
-              color: Color(0xFF4CAF50),
-              size: 24,
+              Icons.verified_outlined,
+              color: Color(0xFF388E3C),
+              size: 18,
             ),
           ),
-          SizedBox(width: 16),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Status: Active',
+                  'ACTIVE STATUS',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
                 Text(
-                  'Vehicle information verified',
+                  'Vehicle verified and operational',
                   style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.white.withOpacity(0.8),
+                    fontSize: 10,
+                    color: Colors.white.withOpacity(0.9),
                   ),
                 ),
               ],
