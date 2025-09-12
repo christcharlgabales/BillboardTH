@@ -14,7 +14,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isUploadingAvatar = false;
   int _currentPage = 0;
-  static const int _logsPerPage = 5;
+  static const int _logsPerPage = 3;
   bool _isLoadingLogs = false;
 
   // Pagination helpers
@@ -64,12 +64,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context: context,
         builder: (context) => AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           title: Text(
             'Select Avatar Source',
             style: TextStyle(
               color: Color(0xFF8B4B3B),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
             ),
           ),
           content: Column(
@@ -149,12 +150,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: Color(0xFF8B4B3B).withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: Color(0xFF8B4B3B).withOpacity(0.3),
           ),
@@ -162,20 +163,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: Row(
           children: [
             Container(
-              padding: EdgeInsets.all(8),
+              padding: EdgeInsets.all(6),
               decoration: BoxDecoration(
                 color: Color(0xFF8B4B3B),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(6),
               ),
-              child: Icon(icon, color: Colors.white, size: 20),
+              child: Icon(icon, color: Colors.white, size: 16),
             ),
-            SizedBox(width: 16),
+            SizedBox(width: 12),
             Text(
               title,
               style: TextStyle(
                 color: Color(0xFF8B4B3B),
                 fontWeight: FontWeight.w600,
-                fontSize: 16,
+                fontSize: 14,
               ),
             ),
           ],
@@ -184,21 +185,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildEmergencyLogsSection() {
+  Widget _buildCompactLogsSection() {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: Color(0xFF8B4B3B).withOpacity(0.2),
-          width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 12,
-            offset: Offset(0, 3),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: Offset(0, 2),
           ),
         ],
       ),
@@ -206,40 +206,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
         children: [
           Container(
             width: double.infinity,
-            padding: EdgeInsets.all(20),
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Color(0xFF8B4B3B),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(8),
+                  padding: EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: Color(0xFFFF9800),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: Icon(
                     Icons.history,
                     color: Colors.white,
-                    size: 20,
+                    size: 14,
                   ),
                 ),
-                SizedBox(width: 12),
+                SizedBox(width: 8),
                 Text(
                   'EMERGENCY LOGS',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 Spacer(),
                 if (_isLoadingLogs)
                   SizedBox(
-                    width: 20,
-                    height: 20,
+                    width: 16,
+                    height: 16,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
                       valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
@@ -249,36 +248,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
           ),
           Container(
-            padding: EdgeInsets.all(16),
+            padding: EdgeInsets.all(8),
             child: Column(
               children: [
-                // Table Header
+                // Compact Table Header
                 Container(
-                  padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                  padding: EdgeInsets.symmetric(vertical: 6, horizontal: 8),
                   decoration: BoxDecoration(
                     color: Color(0xFF8B4B3B).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: Row(
                     children: [
                       Expanded(
+                        flex: 2,
                         child: Text(
                           'Date & Time',
                           style: TextStyle(
                             color: Color(0xFF8B4B3B),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
                       Expanded(
                         child: Text(
-                          'Billboard No.',
+                          'Billboard',
                           style: TextStyle(
                             color: Color(0xFF8B4B3B),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                       Expanded(
@@ -286,146 +287,130 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           'Result',
                           style: TextStyle(
                             color: Color(0xFF8B4B3B),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 9,
+                            fontWeight: FontWeight.bold,
                           ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                     ],
                   ),
                 ),
-                SizedBox(height: 8),
+                SizedBox(height: 4),
                 
-                // Table Data
+                // Compact Table Data
                 if (_paginatedLogs.isEmpty)
                   Container(
-                    padding: EdgeInsets.symmetric(vertical: 32),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.inbox_outlined,
-                          color: Colors.grey[400],
-                          size: 48,
-                        ),
-                        SizedBox(height: 12),
-                        Text(
-                          'No emergency logs available',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ],
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Text(
+                      'No emergency logs available',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 11,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   )
                 else
-                  ..._paginatedLogs.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final log = entry.value;
-                    return Container(
-                      margin: EdgeInsets.only(bottom: 8),
-                      padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: index % 2 == 0 ? Colors.grey[50] : Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                          color: Colors.grey[200]!,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  log['date'] ?? '',
-                                  style: TextStyle(
-                                    color: Color(0xFF2E2E2E),
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                Text(
-                                  log['time']?.substring(0, 8) ?? '',
-                                  style: TextStyle(
-                                    color: Colors.grey[600],
-                                    fontSize: 10,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Expanded(
-                            child: Text(
-                              'BB - ${log['billboardid']?.toString().padLeft(3, '0') ?? ''}',
-                              style: TextStyle(
-                                color: Color(0xFF2E2E2E),
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                          Expanded(
-                            child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: _getResultColor(log['result']).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                log['result'] ?? '',
+                  ..._paginatedLogs.map((log) => Container(
+                    margin: EdgeInsets.only(bottom: 2),
+                    padding: EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                log['date'] ?? '',
                                 style: TextStyle(
-                                  color: _getResultColor(log['result']),
-                                  fontSize: 10,
+                                  color: Color(0xFF2E2E2E),
+                                  fontSize: 8,
                                   fontWeight: FontWeight.w600,
                                 ),
-                                textAlign: TextAlign.center,
                               ),
+                              Text(
+                                log['time']?.substring(0, 8) ?? '',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 7,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: Text(
+                            'BB-${log['billboardid']?.toString().padLeft(3, '0') ?? ''}',
+                            style: TextStyle(
+                              color: Color(0xFF2E2E2E),
+                              fontSize: 8,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                        Expanded(
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: _getResultColor(log['result']).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              log['result'] ?? '',
+                              style: TextStyle(
+                                color: _getResultColor(log['result']),
+                                fontSize: 7,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                
-                // Pagination
-                if (_alertLogs.isNotEmpty)
-                  Container(
-                    margin: EdgeInsets.only(top: 16),
-                    padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: Color(0xFF8B4B3B).withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(8),
+                        ),
+                      ],
                     ),
+                  )).toList(),
+                
+                // Compact Pagination
+                if (_alertLogs.isNotEmpty && _totalPages > 1)
+                  Container(
+                    margin: EdgeInsets.only(top: 8),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         IconButton(
-                          icon: Icon(Icons.chevron_left, color: Color(0xFF8B4B3B)),
+                          padding: EdgeInsets.all(4),
+                          constraints: BoxConstraints(minWidth: 24, minHeight: 24),
+                          icon: Icon(Icons.chevron_left, color: Color(0xFF8B4B3B), size: 16),
                           onPressed: _currentPage > 0
                               ? () => setState(() => _currentPage--)
                               : null,
                         ),
                         Container(
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
                             color: Color(0xFF8B4B3B),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            'Page ${_currentPage + 1} of $_totalPages',
+                            '${_currentPage + 1}/$_totalPages',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                         IconButton(
-                          icon: Icon(Icons.chevron_right, color: Color(0xFF8B4B3B)),
+                          padding: EdgeInsets.all(4),
+                          constraints: BoxConstraints(minWidth: 24, minHeight: 24),
+                          icon: Icon(Icons.chevron_right, color: Color(0xFF8B4B3B), size: 16),
                           onPressed: _currentPage < _totalPages - 1
                               ? () => setState(() => _currentPage++)
                               : null,
@@ -466,19 +451,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         return Scaffold(
           backgroundColor: Color(0xFFF5F5F5),
           body: SafeArea(
-            child: SingleChildScrollView(
-              physics: BouncingScrollPhysics(),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-                child: Column(
-                  children: [
-                    _buildProfileHeader(user),
-                    SizedBox(height: 32),
-                    _buildEmergencyLogsSection(),
-                    SizedBox(height: 32),
-                    _buildActionButtons(),
-                  ],
-                ),
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  _buildCompactProfileHeader(user),
+                  SizedBox(height: 16),
+                  Expanded(child: _buildCompactLogsSection()),
+                  SizedBox(height: 16),
+                  _buildCompactActionButtons(),
+                ],
               ),
             ),
           ),
@@ -487,58 +469,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileHeader(dynamic user) {
+  Widget _buildCompactProfileHeader(dynamic user) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(24),
+      padding: EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF8B4B3B), Color(0xFF6D3829)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
         ),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
             color: Color(0xFF8B4B3B).withOpacity(0.3),
-            blurRadius: 15,
-            offset: Offset(0, 5),
+            blurRadius: 6,
+            offset: Offset(0, 2),
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
           Stack(
             children: [
-              Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.white,
-                    width: 4,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 10,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: CircleAvatar(
-                  radius: 55,
-                  backgroundColor: Colors.grey.shade300,
-                  backgroundImage: user?.avatarUrl != null 
-                      ? NetworkImage(user!.avatarUrl!) 
-                      : null,
-                  child: user?.avatarUrl == null 
-                      ? Icon(
-                          Icons.person,
-                          size: 60,
-                          color: Color(0xFF8B4B3B),
-                        )
-                      : null,
-                ),
+              CircleAvatar(
+                radius: 30,
+                backgroundColor: Colors.grey.shade300,
+                backgroundImage: user?.avatarUrl != null 
+                    ? NetworkImage(user!.avatarUrl!) 
+                    : null,
+                child: user?.avatarUrl == null 
+                    ? Icon(
+                        Icons.person,
+                        size: 30,
+                        color: Color(0xFF8B4B3B),
+                      )
+                    : null,
               ),
               Positioned(
                 bottom: 0,
@@ -546,62 +510,67 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: GestureDetector(
                   onTap: _isUploadingAvatar ? null : _changeAvatar,
                   child: Container(
-                    padding: EdgeInsets.all(12),
+                    padding: EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.2),
-                          blurRadius: 8,
-                          offset: Offset(0, 2),
+                          blurRadius: 4,
+                          offset: Offset(0, 1),
                         ),
                       ],
                     ),
                     child: _isUploadingAvatar
                         ? SizedBox(
-                            width: 18,
-                            height: 18,
+                            width: 10,
+                            height: 10,
                             child: CircularProgressIndicator(
-                              strokeWidth: 2,
+                              strokeWidth: 1.5,
                               valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B4B3B)),
                             ),
                           )
                         : Icon(
                             Icons.camera_alt,
                             color: Color(0xFF8B4B3B),
-                            size: 18,
+                            size: 12,
                           ),
                   ),
                 ),
               ),
             ],
           ),
-          SizedBox(height: 20),
-          Text(
-            user?.name ?? 'Loading...',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          SizedBox(height: 8),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              user?.role ?? 'Emergency Personnel',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user?.name ?? 'Loading...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    user?.role ?? 'Emergency Personnel',
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -609,39 +578,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildCompactActionButtons() {
     return Row(
       children: [
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () {},
-            icon: Icon(Icons.lock_outline),
-            label: Text('Change Password'),
+            icon: Icon(Icons.lock_outline, size: 16),
+            label: Text(
+              'Password',
+              style: TextStyle(fontSize: 12),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFF8B4B3B),
               foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 16),
+              padding: EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
               ),
-              elevation: 4,
             ),
           ),
         ),
-        SizedBox(width: 16),
+        SizedBox(width: 12),
         Expanded(
           child: ElevatedButton.icon(
             onPressed: () {},
-            icon: Icon(Icons.exit_to_app),
-            label: Text('Log Out'),
+            icon: Icon(Icons.exit_to_app, size: 16),
+            label: Text(
+              'Log Out',
+              style: TextStyle(fontSize: 12),
+            ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFFD32F2F),
               foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 16),
+              padding: EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(8),
               ),
-              elevation: 4,
             ),
           ),
         ),
