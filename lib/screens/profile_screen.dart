@@ -14,7 +14,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final ImagePicker _picker = ImagePicker();
   bool _isUploadingAvatar = false;
   int _currentPage = 0;
-  static const int _logsPerPage = 3;
+  static const int _logsPerPage = 5;
   bool _isLoadingLogs = false;
 
   // Pagination helpers
@@ -577,48 +577,312 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+  Future<void> _showChangePasswordDialog() async {
+  final _currentPasswordController = TextEditingController();
+  final _newPasswordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  bool _isLoading = false;
+  bool _obscureCurrentPassword = true;
+  bool _obscureNewPassword = true;
+  bool _obscureConfirmPassword = true;
 
-  Widget _buildCompactActionButtons() {
-    return Row(
-      children: [
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () {},
-            icon: Icon(Icons.lock_outline, size: 16),
-            label: Text(
-              'Password',
-              style: TextStyle(fontSize: 12),
+  await showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, setState) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Color(0xFF8B4B3B).withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.lock_outline, color: Color(0xFF8B4B3B)),
             ),
+            SizedBox(width: 12),
+            Text(
+              'Change Password',
+              style: TextStyle(
+                color: Color(0xFF8B4B3B),
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+          ],
+        ),
+        content: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: _currentPasswordController,
+                obscureText: _obscureCurrentPassword,
+                decoration: InputDecoration(
+                  labelText: 'Current Password',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureCurrentPassword ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () => setState(() => _obscureCurrentPassword = !_obscureCurrentPassword),
+                  ),
+                ),
+                validator: (value) => value?.isEmpty ?? true ? 'Please enter current password' : null,
+              ),
+              SizedBox(height: 16),
+              TextFormField(
+                controller: _newPasswordController,
+                obscureText: _obscureNewPassword,
+                decoration: InputDecoration(
+                  labelText: 'New Password',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureNewPassword ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () => setState(() => _obscureNewPassword = !_obscureNewPassword),
+                  ),
+                ),
+                validator: (value) => (value?.length ?? 0) < 6 ? 'Password must be at least 6 characters' : null,
+              ),
+              SizedBox(height: 16),
+              TextFormField(
+                controller: _confirmPasswordController,
+                obscureText: _obscureConfirmPassword,
+                decoration: InputDecoration(
+                  labelText: 'Confirm New Password',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.grey,
+                    ),
+                    onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                  ),
+                ),
+                validator: (value) => value != _newPasswordController.text ? 'Passwords do not match' : null,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancel',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: _isLoading
+                ? null
+                : () async {
+                    if (_formKey.currentState!.validate()) {
+                      setState(() => _isLoading = true);
+                      try {
+                        // Add your password change logic here
+                        // For example:
+                        // await supabaseService.changePassword(
+                        //   _currentPasswordController.text,
+                        //   _newPasswordController.text,
+                        // );
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Password changed successfully'),
+                            backgroundColor: Color(0xFF388E3C),
+                          ),
+                        );
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(e.toString()),
+                            backgroundColor: Color(0xFFD32F2F),
+                          ),
+                        );
+                      }
+                      setState(() => _isLoading = false);
+                    }
+                  },
             style: ElevatedButton.styleFrom(
               backgroundColor: Color(0xFF8B4B3B),
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 12),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
+            child: _isLoading
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : Text('Change Password'),
           ),
-        ),
-        SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton.icon(
-            onPressed: () {},
-            icon: Icon(Icons.exit_to_app, size: 16),
-            label: Text(
-              'Log Out',
-              style: TextStyle(fontSize: 12),
+        ],
+      ),
+    ),
+  );
+}
+
+Future<void> _showLogoutDialog() async {
+  return showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Color(0xFFD32F2F).withOpacity(0.1),
+              shape: BoxShape.circle,
             ),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Color(0xFFD32F2F),
-              foregroundColor: Colors.white,
-              padding: EdgeInsets.symmetric(vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+            child: Icon(
+              Icons.logout,
+              color: Color(0xFFD32F2F),
+              size: 32,
+            ),
+          ),
+          SizedBox(height: 24),
+          Text(
+            'Logout',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF2E2E2E),
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            'Are you sure you want to logout?',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+          SizedBox(height: 24),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      side: BorderSide(color: Colors.grey[300]!),
+                    ),
+                  ),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
               ),
+              SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () async {
+                    try {
+                      final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+                      await supabaseService.signOut();
+                      Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error logging out: $e'),
+                          backgroundColor: Color(0xFFD32F2F),
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFFD32F2F),
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    'Logout',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+  Widget _buildCompactActionButtons() {
+  return Row(
+    children: [
+      Expanded(
+        child: ElevatedButton.icon(
+          onPressed: _showChangePasswordDialog,
+          icon: Icon(Icons.lock_outline, size: 16),
+          label: Text(
+            'Password',
+            style: TextStyle(fontSize: 12),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFF8B4B3B),
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
         ),
-      ],
-    );
+      ),
+      SizedBox(width: 12),
+      Expanded(
+        child: ElevatedButton.icon(
+          onPressed: _showLogoutDialog,
+          icon: Icon(Icons.exit_to_app, size: 16),
+          label: Text(
+            'Log Out',
+            style: TextStyle(fontSize: 12),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFFD32F2F),
+            foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
   }
 }
