@@ -8,7 +8,7 @@ class AppUser {
   final String status;
   final DateTime createdAt;
   final String userId;
-  final String? avatarUrl; // Add avatar URL field
+  final String? avatarUrl; 
 
   AppUser({
     required this.email,
@@ -18,21 +18,21 @@ class AppUser {
     required this.status,
     required this.createdAt,
     required this.userId,
-    this.avatarUrl, // Add avatar URL parameter
+    this.avatarUrl, 
   });
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
     return AppUser(
-      email: json['email'] as String? ?? '', // Handle null with default value
-      name: json['name'] as String? ?? 'Unknown', // Handle null with default value
-      role: json['role'] as String? ?? 'user', // Handle null with default value
-      evRegistrationNo: json['ev_registration_no'] as String? ?? '', // Handle null with default value
-      status: json['status'] as String? ?? 'inactive', // Handle null with default value
+      email: json['email'] as String? ?? '', 
+      name: json['name'] as String? ?? 'Unknown', 
+      role: json['role'] as String? ?? 'user', 
+      evRegistrationNo: json['ev_registration_no'] as String? ?? '', 
+      status: json['status'] as String? ?? 'inactive', 
       createdAt: json['created_at'] != null 
           ? DateTime.parse(json['created_at'] as String)
-          : DateTime.now(), // Handle null created_at
-      userId: json['userid'] as String? ?? '', // Handle null with default value
-      avatarUrl: json['avatar_url'] as String?, // This can remain nullable
+          : DateTime.now(), 
+      userId: json['userid'] as String? ?? '', 
+      avatarUrl: json['avatar_url'] as String?, 
     );
   }
 
@@ -45,11 +45,11 @@ class AppUser {
       'status': status,
       'created_at': createdAt.toIso8601String(),
       'userid': userId,
-      'avatar_url': avatarUrl, // Include avatar URL in JSON
+      'avatar_url': avatarUrl, 
     };
   }
 
-  // Add copyWith method for easy updates
+
   AppUser copyWith({
     String? email,
     String? name,

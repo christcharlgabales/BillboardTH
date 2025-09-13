@@ -53,13 +53,27 @@ class _AdminDashboardState extends State<AdminDashboard> {
           _currentUserEmail = currentUser.email ?? "";
         });
       } else {
-        // Fallback to get email from Supabase Auth if AppUser is not available
+        // Fetch user data directly from Supabase users table
         final authUser = supabaseService.client.auth.currentUser;
         if (authUser != null) {
-          setState(() {
-            _currentUserName = authUser.email?.split('@').first ?? "Admin User";
-            _currentUserEmail = authUser.email ?? "";
-          });
+          try {
+            final userResponse = await supabaseService.client
+                .from('users')
+                .select('name, email')
+                .eq('email', authUser.email!)
+                .single();
+            
+            setState(() {
+              _currentUserName = userResponse['name'] ?? "Admin User";
+              _currentUserEmail = userResponse['email'] ?? authUser.email ?? "";
+            });
+          } catch (e) {
+            print('Error fetching user data: $e');
+            setState(() {
+              _currentUserName = "Admin User";
+              _currentUserEmail = authUser.email ?? "";
+            });
+          }
         }
       }
       
@@ -110,6 +124,18 @@ class _AdminDashboardState extends State<AdminDashboard> {
         _alertsTriggeredToday = 0;
       });
     }
+  }
+
+  String _getWelcomeMessage() {
+    // Use the full name from the users table
+    String displayName = _currentUserName;
+    
+    // Just ensure it's not empty and provide fallback
+    if (displayName.isEmpty || displayName == "Admin User") {
+      return 'Welcome Back Admin!';
+    }
+    
+    return 'Welcome Back $displayName!';
   }
 
   Future<void> _showLogoutDialog() async {
@@ -484,7 +510,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           child: Row(
             children: [
               Text(
-                'Welcome Back Christ!',
+                _getWelcomeMessage(),
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
