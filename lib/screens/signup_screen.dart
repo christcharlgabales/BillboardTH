@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
-import 'package:supabase/supabase.dart';  // Import Supabase
+import 'package:supabase/supabase.dart';
 
 class SignupScreen extends StatefulWidget {
   @override
   _SignupScreenState createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> {
+class _SignupScreenState extends State<SignupScreen> 
+    with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -22,8 +23,89 @@ class _SignupScreenState extends State<SignupScreen> {
 
   final List<String> _roles = ['Select', 'Driver', 'Administrator'];
 
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late AnimationController _scaleController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _logoScaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeAnimations();
+    _startAnimations();
+  }
+
+  void _initializeAnimations() {
+    _fadeController = AnimationController(
+      duration: Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    
+    _slideController = AnimationController(
+      duration: Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _scaleController = AnimationController(
+      duration: Duration(milliseconds: 1000),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    ));
+
+    _slideAnimation = Tween<Offset>(
+      begin: Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _scaleAnimation = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _scaleController,
+      curve: Curves.elasticOut,
+    ));
+
+    _logoScaleAnimation = Tween<double>(
+      begin: 0.5,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _scaleController,
+      curve: Curves.bounceOut,
+    ));
+  }
+
+  void _startAnimations() {
+    Future.delayed(Duration(milliseconds: 200), () {
+      _scaleController.forward();
+    });
+    
+    Future.delayed(Duration(milliseconds: 400), () {
+      _fadeController.forward();
+    });
+    
+    Future.delayed(Duration(milliseconds: 600), () {
+      _slideController.forward();
+    });
+  }
+
   @override
   void dispose() {
+    _fadeController.dispose();
+    _slideController.dispose();
+    _scaleController.dispose();
     _nameController.dispose();
     _emailController.dispose();
     _evRegistrationController.dispose();
@@ -33,179 +115,340 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _signup() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  if (_selectedRole == 'Select') {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Please select a role'), backgroundColor: Colors.red),
-    );
-    return;
-  }
+    if (_selectedRole == 'Select') {
+      _showErrorSnackBar('Please select a role');
+      return;
+    }
 
-  setState(() {
-    _isLoading = true;
-  });
+    setState(() => _isLoading = true);
 
-  try {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final response = await authService.signUpWithEmail(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-      name: _nameController.text.trim(),
-      role: _selectedRole,
-      evRegistrationNo: _evRegistrationController.text.trim(),
-    );
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final response = await authService.signUpWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        name: _nameController.text.trim(),
+        role: _selectedRole,
+        evRegistrationNo: _evRegistrationController.text.trim(),
+      );
 
-    if (response.user != null) {
-      // Sign out the user immediately after registration
-      await authService.signOut();
+      if (response.user != null) {
+        await authService.signOut();
 
+        if (mounted) {
+          _showSuccessSnackBar('Registration successful! Please login to continue.');
+          
+          await Future.delayed(Duration(seconds: 2));
+          
+          Navigator.of(context).pushNamedAndRemoveUntil(
+            '/login',
+            (route) => false,
+          );
+        }
+      }
+    } on AuthException catch (error) {
       if (mounted) {
-        // Show success message
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registration successful! Please login to continue.'),
-            backgroundColor: Colors.green,
-            duration: Duration(seconds: 2),
-          ),
-        );
-
-        // Navigate to login screen after a short delay
-        await Future.delayed(const Duration(seconds: 2));
-        
-        // Use pushNamedAndRemoveUntil to clear the navigation stack
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/login',
-          (route) => false,
-        );
+        _showErrorSnackBar(error.message);
+      }
+    } catch (error) {
+      if (mounted) {
+        _showErrorSnackBar('An unexpected error occurred: $error');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
-  } on AuthException catch (error) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.message), backgroundColor: Colors.red),
-      );
-    }
-  } catch (error) {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An unexpected error occurred: $error'), backgroundColor: Colors.red),
-      );
-    }
-  } finally {
-    if (mounted) {
-      setState(() {
-        _isLoading = false;
-      });
-    }
   }
-}
 
-    @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
         ),
+        backgroundColor: Colors.red.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.all(16),
+        duration: Duration(seconds: 4),
       ),
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.0),
+    );
+  }
+
+  void _showSuccessSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: Colors.white),
+            SizedBox(width: 12),
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: Colors.green.shade600,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: EdgeInsets.all(16),
+        duration: Duration(seconds: 3),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF8B4B3B),
+              Color(0xFF6D3B2E),
+              Color(0xFF4A2821),
+            ],
+            stops: [0.0, 0.6, 1.0],
+          ),
+        ),
+        child: SafeArea(
           child: Column(
             children: [
-              // Reduced vertical spacing
-              SizedBox(height: 8),
-              // Made logo smaller
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white,
-                  border: Border.all(color: Colors.black, width: 3),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(40),
-                  child: Image.asset('assets/icon.jpg'),
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'ALERT TO DIVERT',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.5,
-                ),
-              ),
-              SizedBox(height: 16),
-              // Wrap form in Expanded to take remaining space
-              Expanded(
-                child: Form(
-                  key: _formKey,
-                  child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.black87,
-                      borderRadius: BorderRadius.circular(16),
+              // Custom App Bar
+              Padding(
+                padding: EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        icon: Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
                     ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: ListView(
-                            shrinkWrap: true,
-                            children: [
-                              _buildInputField('Name', _nameController, 'Enter your name'),
-                              SizedBox(height: 8),
-                              _buildInputField('Email', _emailController, 'Enter your email', isEmail: true),
-                              SizedBox(height: 8),
-                              _buildInputField('EV Registration', _evRegistrationController, 'Vehicle Registration'),
-                              SizedBox(height: 8),
-                              _buildRoleSelector(),
-                              SizedBox(height: 8),
-                              _buildPasswordField('Password', _passwordController, 'Enter password', _obscurePassword),
-                              SizedBox(height: 8),
-                              _buildPasswordField('Verify Password', _confirmPasswordController, 'Confirm password', _obscureConfirmPassword),
-                              SizedBox(height: 16),
-                            ],
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          'Create Account',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        SizedBox(
-                          width: double.infinity,
-                          height: 48,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _signup,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.brown[600],
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    SizedBox(width: 48), // Balance the back button
+                  ],
+                ),
+              ),
+              
+              // Logo and Title
+              AnimatedBuilder(
+                animation: _logoScaleAnimation,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _logoScaleAnimation.value,
+                    child: Column(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black26,
+                                blurRadius: 15,
+                                offset: Offset(0, 8),
                               ),
+                            ],
+                          ),
+                          child: Container(
+                            width: 70,
+                            height: 70,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Color(0xFF8B4B3B), width: 2),
                             ),
-                            child: _isLoading
-                                ? CircularProgressIndicator(color: Colors.white)
-                                : Text(
-                                    'REGISTER',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1,
-                                    ),
-                                  ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(35),
+                              child: Image.asset('assets/icon.jpg', fit: BoxFit.cover),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 12),
+                        FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: Text(
+                            'ALERT TO DIVERT',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5,
+                              color: Colors.white,
+                              shadows: [
+                                Shadow(
+                                  color: Colors.black26,
+                                  offset: Offset(0, 2),
+                                  blurRadius: 4,
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
                     ),
+                  );
+                },
+              ),
+              
+              SizedBox(height: 24),
+              
+              // Animated Form
+              Expanded(
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: Container(
+                      margin: EdgeInsets.symmetric(horizontal: 24),
+                      padding: EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(32),
+                          topRight: Radius.circular(32),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 25,
+                            offset: Offset(0, -10),
+                          ),
+                        ],
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Text(
+                                'Join Our Community',
+                                style: TextStyle(
+                                  color: Color(0xFF8B4B3B),
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              
+                              SizedBox(height: 24),
+                              
+                              // Name Field
+                              _buildTextField(
+                                controller: _nameController,
+                                label: 'Full Name',
+                                icon: Icons.person_outline,
+                                validator: (value) => value?.isEmpty ?? true ? 'Please enter your name' : null,
+                              ),
+                              
+                              SizedBox(height: 16),
+                              
+                              // Email Field
+                              _buildTextField(
+                                controller: _emailController,
+                                label: 'Email Address',
+                                icon: Icons.email_outlined,
+                                keyboardType: TextInputType.emailAddress,
+                                validator: (value) {
+                                  if (value?.isEmpty ?? true) return 'Please enter your email';
+                                  if (!value!.contains('@')) return 'Please enter a valid email';
+                                  return null;
+                                },
+                              ),
+                              
+                              SizedBox(height: 16),
+                              
+                              // EV Registration Field
+                              _buildTextField(
+                                controller: _evRegistrationController,
+                                label: 'Vehicle Registration',
+                                icon: Icons.directions_car_outlined,
+                                validator: (value) => value?.isEmpty ?? true ? 'Please enter vehicle registration' : null,
+                              ),
+                              
+                              SizedBox(height: 16),
+                              
+                              // Role Selector
+                              _buildRoleSelector(),
+                              
+                              SizedBox(height: 16),
+                              
+                              // Password Field
+                              _buildTextField(
+                                controller: _passwordController,
+                                label: 'Password',
+                                icon: Icons.lock_outline,
+                                obscureText: _obscurePassword,
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                    color: Color(0xFF8B4B3B),
+                                  ),
+                                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                ),
+                                validator: (value) => value?.isEmpty ?? true ? 'Please enter a password' : null,
+                              ),
+                              
+                              SizedBox(height: 16),
+                              
+                              // Confirm Password Field
+                              _buildTextField(
+                                controller: _confirmPasswordController,
+                                label: 'Confirm Password',
+                                icon: Icons.lock_outline,
+                                obscureText: _obscureConfirmPassword,
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                                    color: Color(0xFF8B4B3B),
+                                  ),
+                                  onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                                ),
+                                validator: (value) {
+                                  if (value?.isEmpty ?? true) return 'Please confirm your password';
+                                  if (value != _passwordController.text) return 'Passwords do not match';
+                                  return null;
+                                },
+                              ),
+                              
+                              SizedBox(height: 24),
+                              
+                              // Register Button
+                              _buildRegisterButton(),
+                              
+                              SizedBox(height: 16),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
-              SizedBox(height: 16),
             ],
           ),
         ),
@@ -213,123 +456,172 @@ class _SignupScreenState extends State<SignupScreen> {
     );
   }
 
-  Widget _buildInputField(String label, TextEditingController controller, String hint, {bool isEmail = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(color: Colors.white, fontSize: 14),
-        ),
-        SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          style: TextStyle(color: Colors.black),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[600]),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    TextInputType? keyboardType,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, 5),
           ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter ${label.toLowerCase()}';
-            }
-            if (isEmail && !value.contains('@')) {
-              return 'Please enter a valid email';
-            }
-            return null;
-          },
+        ],
+      ),
+      child: TextFormField(
+        controller: controller,
+        keyboardType: keyboardType,
+        obscureText: obscureText,
+        validator: validator,
+        style: TextStyle(fontSize: 16, color: Colors.black87),
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, color: Color(0xFF8B4B3B)),
+          suffixIcon: suffixIcon,
+          filled: true,
+          fillColor: Colors.grey[50],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Color(0xFF8B4B3B), width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.red, width: 2),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide(color: Colors.red, width: 2),
+          ),
+          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          labelStyle: TextStyle(color: Color(0xFF8B4B3B)),
         ),
-      ],
+      ),
     );
   }
 
   Widget _buildRoleSelector() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(
-        'Role',
-        style: TextStyle(color: Colors.white, fontSize: 14),
+    return Container(
+      decoration: BoxDecoration(
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 10,
+            offset: Offset(0, 5),
+          ),
+        ],
       ),
-      SizedBox(height: 8),
-      Container(
-        padding: EdgeInsets.symmetric(horizontal: 12),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 20),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          color: Colors.grey[50],
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey[300]!, width: 1),
         ),
-        child: DropdownButton<String>(
-          value: _selectedRole,
-          isExpanded: true,
-          dropdownColor: Colors.white, // Background of the dropdown
-          iconEnabledColor: Colors.black, // Dropdown arrow color
-          underline: SizedBox(), // Removes underline
-          style: TextStyle(color: Colors.black, fontSize: 16), // Selected item text style
-          items: _roles.map((String role) {
-            return DropdownMenuItem<String>(
-              value: role,
-              child: Text(
-                role,
-                style: TextStyle(color: Colors.black), // Text inside dropdown list
+        child: Row(
+          children: [
+            Icon(Icons.work_outline, color: Color(0xFF8B4B3B)),
+            SizedBox(width: 16),
+            Expanded(
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedRole,
+                  hint: Text('Select Role', style: TextStyle(color: Color(0xFF8B4B3B))),
+                  dropdownColor: Colors.white,
+                  iconEnabledColor: Color(0xFF8B4B3B),
+                  style: TextStyle(color: Colors.black87, fontSize: 16),
+                  items: _roles.map((String role) {
+                    return DropdownMenuItem<String>(
+                      value: role,
+                      child: Text(
+                        role,
+                        style: TextStyle(
+                          color: role == 'Select' ? Colors.grey[600] : Colors.black87,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (String? newValue) {
+                    setState(() {
+                      _selectedRole = newValue!;
+                    });
+                  },
+                ),
               ),
-            );
-          }).toList(),
-          onChanged: (String? newValue) {
-            setState(() {
-              _selectedRole = newValue!;
-            });
-          },
+            ),
+          ],
         ),
       ),
-    ],
-  );
-}
+    );
+  }
 
-
-  Widget _buildPasswordField(String label, TextEditingController controller, String hint, bool obscure) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: TextStyle(color: Colors.white, fontSize: 14),
+  Widget _buildRegisterButton() {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [Color(0xFF8B4B3B), Color(0xFF6D3B2E)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
         ),
-        SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          obscureText: obscure,
-          style: TextStyle(color: Colors.black),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[600]),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            suffixIcon: IconButton(
-              icon: Icon(
-                obscure ? Icons.visibility_off : Icons.visibility,
-                color: Colors.grey[600],
-              ),
-              onPressed: () {
-                setState(() {
-                  obscure = !obscure;
-                });
-              },
-            ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xFF8B4B3B).withOpacity(0.4),
+            blurRadius: 15,
+            offset: Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _signup,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
         ),
-      ],
+        child: _isLoading
+            ? SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.person_add, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text(
+                    'CREATE ACCOUNT',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+      ),
     );
   }
 }

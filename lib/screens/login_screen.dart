@@ -10,14 +10,14 @@ class LoginScreen extends StatefulWidget {
   _LoginScreenState createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> 
+class _LoginScreenState extends State<LoginScreen>
     with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
-  
+
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late AnimationController _scaleController;
@@ -38,12 +38,12 @@ class _LoginScreenState extends State<LoginScreen>
       duration: Duration(milliseconds: 1200),
       vsync: this,
     );
-    
+
     _slideController = AnimationController(
       duration: Duration(milliseconds: 800),
       vsync: this,
     );
-    
+
     _scaleController = AnimationController(
       duration: Duration(milliseconds: 1000),
       vsync: this,
@@ -86,11 +86,11 @@ class _LoginScreenState extends State<LoginScreen>
     Future.delayed(Duration(milliseconds: 300), () {
       _scaleController.forward();
     });
-    
+
     Future.delayed(Duration(milliseconds: 500), () {
       _fadeController.forward();
     });
-    
+
     Future.delayed(Duration(milliseconds: 700), () {
       _slideController.forward();
     });
@@ -160,7 +160,7 @@ class _LoginScreenState extends State<LoginScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final size = MediaQuery.of(context).size;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -176,192 +176,186 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            physics: ClampingScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: size.height - MediaQuery.of(context).padding.top),
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(height: 40),
-                    
-                    // Animated Logo Section
-                    AnimatedBuilder(
-                      animation: _logoScaleAnimation,
-                      builder: (context, child) {
-                        return Transform.scale(
-                          scale: _logoScaleAnimation.value,
-                          child: Container(
-                            padding: EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black26,
-                                  blurRadius: 20,
-                                  offset: Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Color(0xFF8B4B3B), width: 3),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(50),
-                                child: Image.asset('assets/icon.jpg', fit: BoxFit.cover),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                    
-                    SizedBox(height: 20),
-                    
-                    // Animated Title
-                    FadeTransition(
-                      opacity: _fadeAnimation,
-                      child: Text(
-                        'ALERT TO DIVERT',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
+          child: Padding(
+            padding: EdgeInsets.symmetric(horizontal: 24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                SizedBox(height: 20),
+
+                // Animated Logo Section
+                AnimatedBuilder(
+                  animation: _logoScaleAnimation,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: _logoScaleAnimation.value,
+                      child: Container(
+                        padding: EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
                           color: Colors.white,
-                          shadows: [
-                            Shadow(
+                          boxShadow: [
+                            BoxShadow(
                               color: Colors.black26,
-                              offset: Offset(0, 2),
-                              blurRadius: 4,
+                              blurRadius: 20,
+                              offset: Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: Container(
+                          width: 80,
+                          height: 80,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Color(0xFF8B4B3B), width: 3),
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(50),
+                            child: Image.asset('assets/icon.jpg', fit: BoxFit.cover),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                SizedBox(height: 10),
+
+                // Animated Title
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Text(
+                    'ALERT TO DIVERT',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                      color: Colors.white,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black26,
+                          offset: Offset(0, 2),
+                          blurRadius: 4,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SizedBox(height: 30),
+
+                // Animated Login Form
+                SlideTransition(
+                  position: _slideAnimation,
+                  child: ScaleTransition(
+                    scale: _scaleAnimation,
+                    child: Container(
+                      padding: EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 25,
+                            offset: Offset(0, 15),
+                          ),
+                        ],
+                      ),
+                      child: Form(
+                        key: _formKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              kIsWeb ? 'Administrator Login' : 'Driver Login',
+                              style: TextStyle(
+                                color: Color(0xFF8B4B3B),
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+
+                            SizedBox(height: 20),
+
+                            // Email Field
+                            _buildTextField(
+                              controller: _emailController,
+                              label: 'Email Address',
+                              icon: Icons.email_outlined,
+                              keyboardType: TextInputType.emailAddress,
+                              validator: (value) => value?.isEmpty ?? true ? 'Please enter your email' : null,
+                            ),
+
+                            SizedBox(height: 16),
+
+                            // Password Field
+                            _buildTextField(
+                              controller: _passwordController,
+                              label: 'Password',
+                              icon: Icons.lock_outline,
+                              obscureText: _obscurePassword,
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                  color: Color(0xFF8B4B3B),
+                                ),
+                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              ),
+                              validator: (value) => value?.isEmpty ?? true ? 'Please enter your password' : null,
+                            ),
+
+                            SizedBox(height: 20),
+
+                            // Login Button
+                            _buildLoginButton(),
+
+                            SizedBox(height: 20),
+
+                            // Signup Link
+                            TextButton(
+                              onPressed: () => Navigator.push(
+                                context,
+                                PageRouteBuilder(
+                                  pageBuilder: (context, animation, secondaryAnimation) => SignupScreen(),
+                                  transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                                    return SlideTransition(
+                                      position: animation.drive(
+                                        Tween(begin: Offset(1.0, 0.0), end: Offset.zero).chain(
+                                          CurveTween(curve: Curves.easeInOut),
+                                        ),
+                                      ),
+                                      child: child,
+                                    );
+                                  },
+                                ),
+                              ),
+                              child: RichText(
+                                text: TextSpan(
+                                  text: "Don't have an account? ",
+                                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                  children: [
+                                    TextSpan(
+                                      text: 'Register',
+                                      style: TextStyle(
+                                        color: Color(0xFF8B4B3B),
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ),
-                    
-                    SizedBox(height: 50),
-                    
-                    // Animated Login Form
-                    SlideTransition(
-                      position: _slideAnimation,
-                      child: ScaleTransition(
-                        scale: _scaleAnimation,
-                        child: Container(
-                          padding: EdgeInsets.all(32),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.3),
-                                blurRadius: 25,
-                                offset: Offset(0, 15),
-                              ),
-                            ],
-                          ),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Text(
-                                  kIsWeb ? 'Administrator Login' : 'Driver Login',
-                                  style: TextStyle(
-                                    color: Color(0xFF8B4B3B),
-                                    fontSize: 22,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
-                                
-                                SizedBox(height: 32),
-                                
-                                // Email Field
-                                _buildTextField(
-                                  controller: _emailController,
-                                  label: 'Email Address',
-                                  icon: Icons.email_outlined,
-                                  keyboardType: TextInputType.emailAddress,
-                                  validator: (value) => value?.isEmpty ?? true ? 'Please enter your email' : null,
-                                ),
-                                
-                                SizedBox(height: 24),
-                                
-                                // Password Field
-                                _buildTextField(
-                                  controller: _passwordController,
-                                  label: 'Password',
-                                  icon: Icons.lock_outline,
-                                  obscureText: _obscurePassword,
-                                  suffixIcon: IconButton(
-                                    icon: Icon(
-                                      _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                                      color: Color(0xFF8B4B3B),
-                                    ),
-                                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                  ),
-                                  validator: (value) => value?.isEmpty ?? true ? 'Please enter your password' : null,
-                                ),
-                                
-                                SizedBox(height: 32),
-                                
-                                // Login Button
-                                _buildLoginButton(),
-                                
-                                SizedBox(height: 24),
-                                
-                                // Signup Link
-                                TextButton(
-                                  onPressed: () => Navigator.push(
-                                    context,
-                                    PageRouteBuilder(
-                                      pageBuilder: (context, animation, secondaryAnimation) => SignupScreen(),
-                                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                                        return SlideTransition(
-                                          position: animation.drive(
-                                            Tween(begin: Offset(1.0, 0.0), end: Offset.zero).chain(
-                                              CurveTween(curve: Curves.easeInOut),
-                                            ),
-                                          ),
-                                          child: child,
-                                        );
-                                      },
-                                    ),
-                                  ),
-                                  child: RichText(
-                                    text: TextSpan(
-                                      text: "Don't have an account? ",
-                                      style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                                      children: [
-                                        TextSpan(
-                                          text: 'Register',
-                                          style: TextStyle(
-                                            color: Color(0xFF8B4B3B),
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                    
-                    SizedBox(height: 40),
-                  ],
+                  ),
                 ),
-              ),
+
+                SizedBox(height: 10),
+              ],
             ),
           ),
         ),
@@ -393,7 +387,7 @@ class _LoginScreenState extends State<LoginScreen>
         keyboardType: keyboardType,
         obscureText: obscureText,
         validator: validator,
-        style: TextStyle(fontSize: 16, color: Colors.black87),
+        style: TextStyle(fontSize: 14, color: Colors.black87),
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: Color(0xFF8B4B3B)),
@@ -420,7 +414,7 @@ class _LoginScreenState extends State<LoginScreen>
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(color: Colors.red, width: 2),
           ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           labelStyle: TextStyle(color: Color(0xFF8B4B3B)),
         ),
       ),
@@ -429,7 +423,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   Widget _buildLoginButton() {
     return Container(
-      height: 56,
+      height: 48,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         gradient: LinearGradient(
@@ -472,7 +466,7 @@ class _LoginScreenState extends State<LoginScreen>
                     'LOGIN',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: 14,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1,
                     ),
