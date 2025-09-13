@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/auth_service.dart';
+import '../services/auth_service.dart'; 
 import 'package:supabase/supabase.dart';
 
 class SignupScreen extends StatefulWidget {
@@ -8,8 +8,7 @@ class SignupScreen extends StatefulWidget {
   _SignupScreenState createState() => _SignupScreenState();
 }
 
-class _SignupScreenState extends State<SignupScreen> 
-    with TickerProviderStateMixin {
+class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -39,66 +38,20 @@ class _SignupScreenState extends State<SignupScreen>
   }
 
   void _initializeAnimations() {
-    _fadeController = AnimationController(
-      duration: Duration(milliseconds: 1200),
-      vsync: this,
-    );
-    
-    _slideController = AnimationController(
-      duration: Duration(milliseconds: 800),
-      vsync: this,
-    );
-    
-    _scaleController = AnimationController(
-      duration: Duration(milliseconds: 1000),
-      vsync: this,
-    );
+    _fadeController = AnimationController(duration: Duration(milliseconds: 1200), vsync: this);
+    _slideController = AnimationController(duration: Duration(milliseconds: 800), vsync: this);
+    _scaleController = AnimationController(duration: Duration(milliseconds: 1000), vsync: this);
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeInOut,
-    ));
-
-    _slideAnimation = Tween<Offset>(
-      begin: Offset(0, 0.3),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    ));
-
-    _logoScaleAnimation = Tween<double>(
-      begin: 0.5,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.bounceOut,
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut));
+    _slideAnimation = Tween<Offset>(begin: Offset(0, 0.3), end: Offset.zero).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut));
+    _logoScaleAnimation = Tween<double>(begin: 0.5, end: 1.0).animate(CurvedAnimation(parent: _scaleController, curve: Curves.bounceOut));
   }
 
   void _startAnimations() {
-    Future.delayed(Duration(milliseconds: 200), () {
-      _scaleController.forward();
-    });
-    
-    Future.delayed(Duration(milliseconds: 400), () {
-      _fadeController.forward();
-    });
-    
-    Future.delayed(Duration(milliseconds: 600), () {
-      _slideController.forward();
-    });
+    Future.delayed(Duration(milliseconds: 200), () => _scaleController.forward());
+    Future.delayed(Duration(milliseconds: 400), () => _fadeController.forward());
+    Future.delayed(Duration(milliseconds: 600), () => _slideController.forward());
   }
 
   @override
@@ -139,13 +92,10 @@ class _SignupScreenState extends State<SignupScreen>
 
         if (mounted) {
           _showSuccessSnackBar('Registration successful! Please login to continue.');
-          
+
           await Future.delayed(Duration(seconds: 2));
-          
-          Navigator.of(context).pushNamedAndRemoveUntil(
-            '/login',
-            (route) => false,
-          );
+
+          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
         }
       }
     } on AuthException catch (error) {
@@ -204,7 +154,7 @@ class _SignupScreenState extends State<SignupScreen>
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -220,236 +170,231 @@ class _SignupScreenState extends State<SignupScreen>
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              // Custom App Bar
-              Padding(
-                padding: EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ),
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          'Create Account',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 48), // Balance the back button
-                  ],
-                ),
-              ),
-              
-              // Logo and Title
-              AnimatedBuilder(
-                animation: _logoScaleAnimation,
-                builder: (context, child) {
-                  return Transform.scale(
-                    scale: _logoScaleAnimation.value,
-                    child: Column(
+          child: SingleChildScrollView( // Make the whole screen scrollable to avoid overflow
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                children: [
+                  // Custom App Bar
+                  Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Row(
                       children: [
                         Container(
-                          padding: EdgeInsets.all(6),
                           decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black26,
-                                blurRadius: 15,
-                                offset: Offset(0, 8),
-                              ),
-                            ],
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Container(
-                            width: 70,
-                            height: 70,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Color(0xFF8B4B3B), width: 2),
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(35),
-                              child: Image.asset('assets/icon.jpg', fit: BoxFit.cover),
+                          child: IconButton(
+                            icon: Icon(Icons.arrow_back, color: Colors.white),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'Create Account',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16, // Reduced size to fit screen
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
-                        SizedBox(height: 12),
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: Text(
-                            'ALERT TO DIVERT',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5,
-                              color: Colors.white,
-                              shadows: [
-                                Shadow(
-                                  color: Colors.black26,
-                                  offset: Offset(0, 2),
-                                  blurRadius: 4,
+                        SizedBox(width: 48), // Balance the back button
+                      ],
+                    ),
+                  ),
+
+                  // Logo and Title
+                  AnimatedBuilder(
+                    animation: _logoScaleAnimation,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _logoScaleAnimation.value,
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 15,
+                                    offset: Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Color(0xFF8B4B3B), width: 2),
                                 ),
-                              ],
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(35),
+                                  child: Image.asset('assets/icon.jpg', fit: BoxFit.cover),
+                                ),
+                              ),
                             ),
-                          ),
+                            SizedBox(height: 8),
+                            FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: Text(
+                                'ALERT TO DIVERT',
+                                style: TextStyle(
+                                  fontSize: 14, // Reduced size for compactness
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.5,
+                                  color: Colors.white,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black26,
+                                      offset: Offset(0, 2),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+
+                  SizedBox(height: 16),
+
+                  // Animated Form
+                  Container(
+                    margin: EdgeInsets.symmetric(horizontal: 16),
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(32),
+                        topRight: Radius.circular(32),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 25,
+                          offset: Offset(0, -10),
                         ),
                       ],
                     ),
-                  );
-                },
-              ),
-              
-              SizedBox(height: 24),
-              
-              // Animated Form
-              Expanded(
-                child: SlideTransition(
-                  position: _slideAnimation,
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: Container(
-                      margin: EdgeInsets.symmetric(horizontal: 24),
-                      padding: EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(32),
-                          topRight: Radius.circular(32),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.3),
-                            blurRadius: 25,
-                            offset: Offset(0, -10),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Register', // Changed text for clarity
+                            style: TextStyle(
+                              color: Color(0xFF8B4B3B),
+                              fontSize: 18, // Adjusted font size
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
+
+                          SizedBox(height: 16),
+
+                          // Name Field
+                          _buildTextField(
+                            controller: _nameController,
+                            label: 'Full Name',
+                            icon: Icons.person_outline,
+                            validator: (value) => value?.isEmpty ?? true ? 'Please enter your name' : null,
+                          ),
+
+                          SizedBox(height: 8),
+
+                          // Email Field
+                          _buildTextField(
+                            controller: _emailController,
+                            label: 'Email Address',
+                            icon: Icons.email_outlined,
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (value) {
+                              if (value?.isEmpty ?? true) return 'Please enter your email';
+                              if (!value!.contains('@')) return 'Please enter a valid email';
+                              return null;
+                            },
+                          ),
+
+                          SizedBox(height: 8),
+
+                          // EV Registration Field
+                          _buildTextField(
+                            controller: _evRegistrationController,
+                            label: 'Vehicle Registration',
+                            icon: Icons.directions_car_outlined,
+                            validator: (value) => value?.isEmpty ?? true ? 'Please enter vehicle registration' : null,
+                          ),
+
+                          SizedBox(height: 8),
+
+                          // Role Selector
+                          _buildRoleSelector(),
+
+                          SizedBox(height: 8),
+
+                          // Password Field
+                          _buildTextField(
+                            controller: _passwordController,
+                            label: 'Password',
+                            icon: Icons.lock_outline,
+                            obscureText: _obscurePassword,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                                color: Color(0xFF8B4B3B),
+                              ),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                            validator: (value) => value?.isEmpty ?? true ? 'Please enter a password' : null,
+                          ),
+
+                          SizedBox(height: 8),
+
+                          // Confirm Password Field
+                          _buildTextField(
+                            controller: _confirmPasswordController,
+                            label: 'Confirm Password',
+                            icon: Icons.lock_outline,
+                            obscureText: _obscureConfirmPassword,
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                                color: Color(0xFF8B4B3B),
+                              ),
+                              onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                            ),
+                            validator: (value) {
+                              if (value?.isEmpty ?? true) return 'Please confirm your password';
+                              if (value != _passwordController.text) return 'Passwords do not match';
+                              return null;
+                            },
+                          ),
+
+                          SizedBox(height: 16),
+
+                          // Register Button
+                          _buildRegisterButton(),
+
+                          SizedBox(height: 8),
                         ],
-                      ),
-                      child: Form(
-                        key: _formKey,
-                        child: SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                'Join Our Community',
-                                style: TextStyle(
-                                  color: Color(0xFF8B4B3B),
-                                  fontSize: 24,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                              
-                              SizedBox(height: 24),
-                              
-                              // Name Field
-                              _buildTextField(
-                                controller: _nameController,
-                                label: 'Full Name',
-                                icon: Icons.person_outline,
-                                validator: (value) => value?.isEmpty ?? true ? 'Please enter your name' : null,
-                              ),
-                              
-                              SizedBox(height: 16),
-                              
-                              // Email Field
-                              _buildTextField(
-                                controller: _emailController,
-                                label: 'Email Address',
-                                icon: Icons.email_outlined,
-                                keyboardType: TextInputType.emailAddress,
-                                validator: (value) {
-                                  if (value?.isEmpty ?? true) return 'Please enter your email';
-                                  if (!value!.contains('@')) return 'Please enter a valid email';
-                                  return null;
-                                },
-                              ),
-                              
-                              SizedBox(height: 16),
-                              
-                              // EV Registration Field
-                              _buildTextField(
-                                controller: _evRegistrationController,
-                                label: 'Vehicle Registration',
-                                icon: Icons.directions_car_outlined,
-                                validator: (value) => value?.isEmpty ?? true ? 'Please enter vehicle registration' : null,
-                              ),
-                              
-                              SizedBox(height: 16),
-                              
-                              // Role Selector
-                              _buildRoleSelector(),
-                              
-                              SizedBox(height: 16),
-                              
-                              // Password Field
-                              _buildTextField(
-                                controller: _passwordController,
-                                label: 'Password',
-                                icon: Icons.lock_outline,
-                                obscureText: _obscurePassword,
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                                    color: Color(0xFF8B4B3B),
-                                  ),
-                                  onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                                ),
-                                validator: (value) => value?.isEmpty ?? true ? 'Please enter a password' : null,
-                              ),
-                              
-                              SizedBox(height: 16),
-                              
-                              // Confirm Password Field
-                              _buildTextField(
-                                controller: _confirmPasswordController,
-                                label: 'Confirm Password',
-                                icon: Icons.lock_outline,
-                                obscureText: _obscureConfirmPassword,
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
-                                    color: Color(0xFF8B4B3B),
-                                  ),
-                                  onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
-                                ),
-                                validator: (value) {
-                                  if (value?.isEmpty ?? true) return 'Please confirm your password';
-                                  if (value != _passwordController.text) return 'Passwords do not match';
-                                  return null;
-                                },
-                              ),
-                              
-                              SizedBox(height: 24),
-                              
-                              // Register Button
-                              _buildRegisterButton(),
-                              
-                              SizedBox(height: 16),
-                            ],
-                          ),
-                        ),
                       ),
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
@@ -480,7 +425,7 @@ class _SignupScreenState extends State<SignupScreen>
         keyboardType: keyboardType,
         obscureText: obscureText,
         validator: validator,
-        style: TextStyle(fontSize: 16, color: Colors.black87),
+        style: TextStyle(fontSize: 14, color: Colors.black87),
         decoration: InputDecoration(
           labelText: label,
           prefixIcon: Icon(icon, color: Color(0xFF8B4B3B)),
@@ -507,7 +452,7 @@ class _SignupScreenState extends State<SignupScreen>
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide(color: Colors.red, width: 2),
           ),
-          contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           labelStyle: TextStyle(color: Color(0xFF8B4B3B)),
         ),
       ),
@@ -526,7 +471,7 @@ class _SignupScreenState extends State<SignupScreen>
         ],
       ),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 20),
+        padding: EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.grey[50],
           borderRadius: BorderRadius.circular(16),
@@ -535,7 +480,7 @@ class _SignupScreenState extends State<SignupScreen>
         child: Row(
           children: [
             Icon(Icons.work_outline, color: Color(0xFF8B4B3B)),
-            SizedBox(width: 16),
+            SizedBox(width: 12),
             Expanded(
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
@@ -543,17 +488,9 @@ class _SignupScreenState extends State<SignupScreen>
                   hint: Text('Select Role', style: TextStyle(color: Color(0xFF8B4B3B))),
                   dropdownColor: Colors.white,
                   iconEnabledColor: Color(0xFF8B4B3B),
-                  style: TextStyle(color: Colors.black87, fontSize: 16),
+                  style: TextStyle(color: Colors.black87, fontSize: 14),
                   items: _roles.map((String role) {
-                    return DropdownMenuItem<String>(
-                      value: role,
-                      child: Text(
-                        role,
-                        style: TextStyle(
-                          color: role == 'Select' ? Colors.grey[600] : Colors.black87,
-                        ),
-                      ),
-                    );
+                    return DropdownMenuItem<String>(value: role, child: Text(role));
                   }).toList(),
                   onChanged: (String? newValue) {
                     setState(() {
@@ -570,58 +507,61 @@ class _SignupScreenState extends State<SignupScreen>
   }
 
   Widget _buildRegisterButton() {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        gradient: LinearGradient(
-          colors: [Color(0xFF8B4B3B), Color(0xFF6D3B2E)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF8B4B3B).withOpacity(0.4),
-            blurRadius: 15,
-            offset: Offset(0, 8),
-          ),
-        ],
+  return Container(
+    height: 48,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(16),
+      gradient: LinearGradient(
+        colors: [Color(0xFF8B4B3B), Color(0xFF6D3B2E)],
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
       ),
-      child: ElevatedButton(
-        onPressed: _isLoading ? null : _signup,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.transparent,
-          shadowColor: Colors.transparent,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+      boxShadow: [
+        BoxShadow(
+          color: Color(0xFF8B4B3B).withOpacity(0.4),
+          blurRadius: 15,
+          offset: Offset(0, 8),
         ),
-        child: _isLoading
-            ? SizedBox(
-                height: 24,
-                width: 24,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.person_add, color: Colors.white),
-                  SizedBox(width: 12),
-                  Text(
-                    'CREATE ACCOUNT',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ],
+      ],
+    ),
+    child: ElevatedButton(
+      onPressed: _isLoading ? null : _signup,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.transparent,
+        shadowColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+      ),
+      child: _isLoading
+          ? SizedBox(
+              height: 24,
+              width: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
-      ),
-    );
-  }
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.person_add, color: Colors.white),
+                SizedBox(width: 12),
+                Text(
+                  'CREATE ACCOUNT',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 12, // Adjust font size to fit better
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 1,
+                    overflow: TextOverflow.ellipsis, // Prevent overflow
+                  ),
+                ),
+              ],
+            ),
+    ),
+  );
+}
+
+
 }
