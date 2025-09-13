@@ -583,94 +583,87 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Widget _buildEmergencyControlPanel(LocationService locationService, SupabaseService supabaseService) {
-  final evRegistration = supabaseService.getCurrentEvRegistration();
-  final isValidRegistration = evRegistration != 'UNKNOWN_VEHICLE';
-  
-  return Container(
-    padding: EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      border: Border(
-        top: BorderSide(color: Colors.grey[300]!, width: 1),
+    final evRegistration = supabaseService.getCurrentEvRegistration();
+    final isValidRegistration = evRegistration != 'UNKNOWN_VEHICLE';
+    
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          top: BorderSide(color: Colors.grey[300]!, width: 1),
+        ),
       ),
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: double.infinity,
-          height: 48,
-          child: ElevatedButton(
-            onPressed: isValidRegistration ? () => _handleTrackingButton(locationService) : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isValidRegistration 
-                  ? (locationService.isTracking ? Color(0xFFD32F2F) : Color(0xFF8B4B3B))
-                  : Colors.grey[400],
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: isValidRegistration ? 4 : 0,
-              // Add padding to prevent overflow
-              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min, // This prevents the row from taking full width
-              children: [
-                Container(
-                  padding: EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Icon(
-                    locationService.isTracking ? Icons.stop : Icons.play_arrow,
-                    size: 16, // Reduced from 18 to 16
-                  ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: isValidRegistration ? () => _handleTrackingButton(locationService) : null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isValidRegistration 
+                    ? (locationService.isTracking ? Color(0xFFD32F2F) : Color(0xFF8B4B3B))
+                    : Colors.grey[400],
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                SizedBox(width: 6), // Reduced from 8 to 6
-                Flexible( // Wrap text in Flexible to prevent overflow
-                  child: Text(
+                elevation: isValidRegistration ? 4 : 0,
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Icon(
+                      locationService.isTracking ? Icons.stop : Icons.play_arrow,
+                      size: 18,
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Text(
                     locationService.isTracking ? 'STOP EMERGENCY ALERT' : 'START EMERGENCY ALERT',
                     style: TextStyle(
-                      fontSize: 13, // Reduced from 14 to 13
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
-                    overflow: TextOverflow.ellipsis, // Handle text overflow
-                    maxLines: 1,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-        SizedBox(height: 6),
-        if (!isValidRegistration)
-          Text(
-            'Cannot start tracking without valid EV registration',
-            style: TextStyle(
-              fontSize: 10,
-              color: Color(0xFFD32F2F),
-              fontWeight: FontWeight.w500,
+          SizedBox(height: 6),
+          if (!isValidRegistration)
+            Text(
+              'Cannot start tracking without valid EV registration',
+              style: TextStyle(
+                fontSize: 10,
+                color: Color(0xFFD32F2F),
+                fontWeight: FontWeight.w500,
+              ),
+              textAlign: TextAlign.center,
+            )
+          else if (locationService.statusMessage.isNotEmpty)
+            Text(
+              locationService.statusMessage,
+              style: TextStyle(
+                fontSize: 10,
+                color: Colors.grey[600],
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
-            textAlign: TextAlign.center,
-          )
-        else if (locationService.statusMessage.isNotEmpty)
-          Text(
-            locationService.statusMessage,
-            style: TextStyle(
-              fontSize: 10,
-              color: Colors.grey[600],
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-          ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   void _handleTrackingButton(LocationService locationService) {
     final supabaseService = Provider.of<SupabaseService>(context, listen: false);
