@@ -227,18 +227,19 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                               key: _formKey,
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
+                                mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Text(
                                     kIsWeb ? 'Administrator Login' : 'Driver Login',
                                     style: TextStyle(
                                       color: Color(0xFF8B4B3B),
-                                      fontSize: 18,
+                                      fontSize: 20,
                                       fontWeight: FontWeight.bold,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
 
-                                  SizedBox(height: 20),
+                                  SizedBox(height: 24),
 
                                   // Email Field
                                   _buildTextField(
@@ -249,7 +250,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                     validator: (value) => value?.isEmpty ?? true ? 'Please enter your email' : null,
                                   ),
 
-                                  SizedBox(height: 16),
+                                  SizedBox(height: 20),
 
                                   // Password Field
                                   _buildTextField(
@@ -267,7 +268,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                     validator: (value) => value?.isEmpty ?? true ? 'Please enter your password' : null,
                                   ),
 
-                                  SizedBox(height: 20),
+                                  SizedBox(height: 24),
 
                                   // Login Button
                                   _buildLoginButton(),
@@ -295,7 +296,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                                     child: RichText(
                                       text: TextSpan(
                                         text: "Don't have an account? ",
-                                        style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
                                         children: [
                                           TextSpan(
                                             text: 'Register',
@@ -314,9 +315,6 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
                           ),
                         ),
                       ),
-
-                      Expanded(child: SizedBox()), // This will push content up and fill remaining space with background
-                      SizedBox(height: 20), // Bottom padding
                     ],
                   ),
                 ),
