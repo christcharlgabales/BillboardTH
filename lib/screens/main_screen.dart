@@ -94,7 +94,7 @@ class _MainScreenState extends State<MainScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(message),
-          backgroundColor: Colors.red,
+          backgroundColor: Color(0xFFD32F2F),
           duration: Duration(seconds: 5),
         ),
       );
@@ -162,7 +162,7 @@ class _MainScreenState extends State<MainScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("🚨 EMERGENCY ALERT: Billboard ${billboard.billboardNumber} activated!"),
-            backgroundColor: Colors.red,
+            backgroundColor: Color(0xFFD32F2F),
             duration: Duration(seconds: 3),
           ),
         );
@@ -191,7 +191,7 @@ class _MainScreenState extends State<MainScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("✅ Billboard ${billboard.billboardNumber} deactivated (out of range)"),
-          backgroundColor: Colors.green,
+          backgroundColor: Color(0xFF388E3C),
           duration: Duration(seconds: 2),
         ),
       );
@@ -234,7 +234,7 @@ class _MainScreenState extends State<MainScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text("🔴 All billboard alerts stopped"),
-          backgroundColor: Colors.grey,
+          backgroundColor: Colors.grey[600],
           duration: Duration(seconds: 2),
         ),
       );
@@ -312,12 +312,12 @@ class _MainScreenState extends State<MainScreen> {
 
         return Column(
           children: [
-            _buildHeader(supabaseService),
-            _buildLocationStatus(locationService, supabaseService),
+            _buildEmergencyHeader(supabaseService),
+            _buildCompactLocationStatus(locationService, supabaseService),
             Expanded(
               child: _buildMapContainer(locationService, supabaseService),
             ),
-            _buildControlPanel(locationService, supabaseService),
+            _buildEmergencyControlPanel(locationService, supabaseService),
           ],
         );
       },
@@ -350,23 +350,66 @@ class _MainScreenState extends State<MainScreen> {
     return true;
   }
 
-  Widget _buildHeader(SupabaseService supabaseService) {
+  Widget _buildEmergencyHeader(SupabaseService supabaseService) {
     final evRegistration = supabaseService.getCurrentEvRegistration();
     final isValidRegistration = evRegistration != 'UNKNOWN_VEHICLE';
     
     return Container(
-      padding: EdgeInsets.all(16),
+      width: double.infinity,
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF8B4B3B), Color(0xFF6D3829)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xFF8B4B3B).withOpacity(0.3),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
       child: Column(
         children: [
           Row(
             children: [
-              Icon(Icons.navigation, size: 24),
-              SizedBox(width: 8),
-              Text('ALERT TO DIVERT', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              Spacer(),
-              IconButton(
-                icon: Icon(Icons.logout),
-                onPressed: _logout,
+              Container(
+                padding: EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  Icons.emergency,
+                  color: Color(0xFF8B4B3B),
+                  size: 18,
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'EMERGENCY ALERT SYSTEM',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.logout, color: Colors.white, size: 16),
+                  onPressed: _logout,
+                  constraints: BoxConstraints(minWidth: 24, minHeight: 24),
+                  padding: EdgeInsets.zero,
+                ),
               ),
             ],
           ),
@@ -376,18 +419,22 @@ class _MainScreenState extends State<MainScreen> {
               padding: EdgeInsets.all(8),
               margin: EdgeInsets.only(top: 8),
               decoration: BoxDecoration(
-                color: Colors.orange.shade100,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange),
+                color: Color(0xFFFF9800).withOpacity(0.2),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: Color(0xFFFF9800)),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.warning, color: Colors.orange, size: 16),
-                  SizedBox(width: 8),
+                  Icon(Icons.warning, color: Color(0xFFFF9800), size: 12),
+                  SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      'No emergency vehicle registration found. Contact support.',
-                      style: TextStyle(fontSize: 12, color: Colors.orange.shade800),
+                      'No EV registration found. Contact support.',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -406,54 +453,75 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  Widget _buildLocationStatus(LocationService locationService, SupabaseService supabaseService) {
+  Widget _buildCompactLocationStatus(LocationService locationService, SupabaseService supabaseService) {
     final evRegistration = supabaseService.getCurrentEvRegistration();
     
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Colors.grey[300]!, width: 1),
+        ),
+      ),
+      child: Row(
         children: [
-          Row(
-            children: [
-              Icon(
-                locationService.isTracking ? Icons.gps_fixed : Icons.gps_off,
-                color: locationService.isTracking ? Colors.green : Colors.grey,
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  locationService.currentPosition != null
-                      ? 'Lat: ${locationService.currentPosition!.latitude.toStringAsFixed(4)}, Lng: ${locationService.currentPosition!.longitude.toStringAsFixed(4)}'
-                      : 'No location data',
-                  style: TextStyle(fontSize: 12),
-                ),
-              ),
-              if (_activeBillboards.isNotEmpty)
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    '${_activeBillboards.length} Active',
-                    style: TextStyle(color: Colors.white, fontSize: 10),
-                  ),
-                ),
-            ],
+          Container(
+            padding: EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: locationService.isTracking 
+                  ? Color(0xFF388E3C).withOpacity(0.1) 
+                  : Colors.grey.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Icon(
+              locationService.isTracking ? Icons.gps_fixed : Icons.gps_off,
+              color: locationService.isTracking ? Color(0xFF388E3C) : Colors.grey,
+              size: 14,
+            ),
           ),
+          SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              locationService.currentPosition != null
+                  ? 'GPS: ${locationService.currentPosition!.latitude.toStringAsFixed(3)}, ${locationService.currentPosition!.longitude.toStringAsFixed(3)}'
+                  : 'No GPS signal',
+              style: TextStyle(fontSize: 10, color: Colors.grey[700]),
+            ),
+          ),
+          if (_activeBillboards.isNotEmpty)
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Color(0xFFD32F2F),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                '${_activeBillboards.length} ACTIVE',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           if (evRegistration != 'UNKNOWN_VEHICLE')
             Padding(
-              padding: EdgeInsets.only(top: 4),
-              child: Row(
-                children: [
-                  Icon(Icons.local_shipping, size: 16, color: Colors.blue),
-                  SizedBox(width: 8),
-                  Text(
-                    'EV: $evRegistration',
-                    style: TextStyle(fontSize: 11, color: Colors.blue),
+              padding: EdgeInsets.only(left: 8),
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Color(0xFF8B4B3B).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'EV: $evRegistration',
+                  style: TextStyle(
+                    fontSize: 8,
+                    color: Color(0xFF8B4B3B),
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
+                ),
               ),
             ),
         ],
@@ -463,13 +531,20 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildMapContainer(LocationService locationService, SupabaseService supabaseService) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16),
+      margin: EdgeInsets.all(8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Color(0xFF8B4B3B).withOpacity(0.3), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         child: GoogleMap(
           onMapCreated: (GoogleMapController controller) {
             _mapController = controller;
@@ -485,7 +560,7 @@ class _MainScreenState extends State<MainScreen> {
           ),
           markers: _markers,
           myLocationEnabled: true,
-          myLocationButtonEnabled: true,
+          myLocationButtonEnabled: false,
           onTap: _onMapTap,
           liteModeEnabled: false,
           mapToolbarEnabled: false,
@@ -507,65 +582,95 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  Widget _buildControlPanel(LocationService locationService, SupabaseService supabaseService) {
-    final evRegistration = supabaseService.getCurrentEvRegistration();
-    final isValidRegistration = evRegistration != 'UNKNOWN_VEHICLE';
-    
-    return Container(
-      height: 140,
-      padding: EdgeInsets.all(16),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: isValidRegistration ? () => _handleTrackingButton(locationService) : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isValidRegistration ? Color(0xFF8B4B3B) : Colors.grey,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
+  Widget _buildEmergencyControlPanel(LocationService locationService, SupabaseService supabaseService) {
+  final evRegistration = supabaseService.getCurrentEvRegistration();
+  final isValidRegistration = evRegistration != 'UNKNOWN_VEHICLE';
+  
+  return Container(
+    padding: EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      border: Border(
+        top: BorderSide(color: Colors.grey[300]!, width: 1),
+      ),
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: double.infinity,
+          height: 48,
+          child: ElevatedButton(
+            onPressed: isValidRegistration ? () => _handleTrackingButton(locationService) : null,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: isValidRegistration 
+                  ? (locationService.isTracking ? Color(0xFFD32F2F) : Color(0xFF8B4B3B))
+                  : Colors.grey[400],
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    locationService.isTracking ? 'STOP' : 'START',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              elevation: isValidRegistration ? 4 : 0,
+              // Add padding to prevent overflow
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min, // This prevents the row from taking full width
+              children: [
+                Container(
+                  padding: EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  SizedBox(width: 8),
-                  Icon(
+                  child: Icon(
                     locationService.isTracking ? Icons.stop : Icons.play_arrow,
-                    size: 20,
+                    size: 16, // Reduced from 18 to 16
                   ),
-                ],
-              ),
+                ),
+                SizedBox(width: 6), // Reduced from 8 to 6
+                Flexible( // Wrap text in Flexible to prevent overflow
+                  child: Text(
+                    locationService.isTracking ? 'STOP EMERGENCY ALERT' : 'START EMERGENCY ALERT',
+                    style: TextStyle(
+                      fontSize: 13, // Reduced from 14 to 13
+                      fontWeight: FontWeight.bold,
+                    ),
+                    overflow: TextOverflow.ellipsis, // Handle text overflow
+                    maxLines: 1,
+                  ),
+                ),
+              ],
             ),
           ),
-          SizedBox(height: 8),
-          if (!isValidRegistration)
-            Text(
-              'Cannot start tracking without valid EV registration',
-              style: TextStyle(fontSize: 11, color: Colors.red),
-              textAlign: TextAlign.center,
-            )
-          else if (locationService.statusMessage.isNotEmpty)
-            Flexible(
-              child: Text(
-                locationService.statusMessage,
-                style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-              ),
+        ),
+        SizedBox(height: 6),
+        if (!isValidRegistration)
+          Text(
+            'Cannot start tracking without valid EV registration',
+            style: TextStyle(
+              fontSize: 10,
+              color: Color(0xFFD32F2F),
+              fontWeight: FontWeight.w500,
             ),
-        ],
-      ),
-    );
-  }
+            textAlign: TextAlign.center,
+          )
+        else if (locationService.statusMessage.isNotEmpty)
+          Text(
+            locationService.statusMessage,
+            style: TextStyle(
+              fontSize: 10,
+              color: Colors.grey[600],
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+          ),
+      ],
+    ),
+  );
+}
 
   void _handleTrackingButton(LocationService locationService) {
     final supabaseService = Provider.of<SupabaseService>(context, listen: false);
@@ -585,48 +690,31 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _updateMarkers(List<Billboard> billboards) {
-  if (!mounted) return;
-  
-  setState(() {
-    _markers = billboards.map((billboard) {
-      return Marker(
-        markerId: MarkerId(billboard.billboardId.toString()),
-        position: LatLng(billboard.latitude, billboard.longitude),
-        onTap: () => _onMarkerTap(billboard),
-        icon: BitmapDescriptor.defaultMarkerWithHue(
-          billboard.isActivated ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed,
-        ),
-        infoWindow: InfoWindow(
-          title: 'Billboard ${billboard.billboardNumber}',
-          snippet: '${billboard.location}\n${billboard.isActivated ? "ACTIVE" : "INACTIVE"}',
-        ),
-      );
-    }).toSet();
-  });
-}
+    if (!mounted) return;
+    
+    setState(() {
+      _markers = billboards.map((billboard) {
+        return Marker(
+          markerId: MarkerId(billboard.billboardId.toString()),
+          position: LatLng(billboard.latitude, billboard.longitude),
+          onTap: () => _onMarkerTap(billboard),
+          icon: BitmapDescriptor.defaultMarkerWithHue(
+            billboard.isActivated ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed,
+          ),
+          infoWindow: InfoWindow(
+            title: 'Billboard ${billboard.billboardNumber}',
+            snippet: '${billboard.location}\n${billboard.isActivated ? "ACTIVE" : "INACTIVE"}',
+          ),
+        );
+      }).toSet();
+    });
+  }
 
   void _onMarkerTap(Billboard billboard) {
     setState(() {
       _selectedBillboard = billboard;
     });
     _toggleDialog(billboard);
-  }
-
-  bool _markersEqual(Set<Marker> set1, Set<Marker> set2) {
-    if (set1.length != set2.length) return false;
-    
-    for (Marker marker1 in set1) {
-      bool found = false;
-      for (Marker marker2 in set2) {
-        if (marker1.markerId == marker2.markerId && 
-            marker1.position == marker2.position) {
-          found = true;
-          break;
-        }
-      }
-      if (!found) return false;
-    }
-    return true;
   }
 
   void _toggleDialog(Billboard billboard) {
@@ -655,18 +743,55 @@ class _MainScreenState extends State<MainScreen> {
       barrierDismissible: true,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Billboard Control'),
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Color(0xFF8B4B3B),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(Icons.control_point, color: Colors.white, size: 16),
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Billboard Control',
+                style: TextStyle(
+                  color: Color(0xFF8B4B3B),
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Billboard: ${billboard.billboardNumber}'),
-              Text('Location: ${billboard.location}'),
-              SizedBox(height: 8),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Color(0xFF8B4B3B).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Billboard: ${billboard.billboardNumber}', 
+                         style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                    Text('Location: ${billboard.location}', 
+                         style: TextStyle(fontSize: 11, color: Colors.grey[700])),
+                  ],
+                ),
+              ),
+              SizedBox(height: 12),
               Text(
                 billboard.isActivated
                     ? 'Do you want to manually deactivate this billboard?'
-                    : 'Do you want to manually activate this billboard?'
+                    : 'Do you want to manually activate this billboard?',
+                style: TextStyle(fontSize: 12),
               ),
             ],
           ),
@@ -677,14 +802,25 @@ class _MainScreenState extends State<MainScreen> {
                 _manualToggleBillboard(billboard);
                 _dismissDialog();
               },
-              child: Text(billboard.isActivated ? 'DEACTIVATE' : 'ACTIVATE'),
+              style: TextButton.styleFrom(
+                backgroundColor: billboard.isActivated ? Color(0xFFFF9800) : Color(0xFF8B4B3B),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              ),
+              child: Text(
+                billboard.isActivated ? 'DEACTIVATE' : 'ACTIVATE',
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+              ),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
                 _dismissDialog();
               },
-              child: Text('Cancel'),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: Colors.grey[600], fontSize: 11),
+              ),
             ),
           ],
         );
@@ -703,55 +839,55 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _manualToggleBillboard(Billboard billboard) async {
-  if (!mounted) return;
-  
-  final supabaseService = Provider.of<SupabaseService>(context, listen: false);
-  final evRegistration = supabaseService.getCurrentEvRegistration();
-  final newState = !billboard.isActivated;
-  
-  try {
-    // Update local state first
-    supabaseService.updateBillboardStatus(billboard.billboardId, newState);
+    if (!mounted) return;
     
-    // Attempt manual activation/deactivation
-    final success = await supabaseService.manualActivation(
-      billboard.billboardId, 
-      evRegistration, 
-      newState
-    );
+    final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+    final evRegistration = supabaseService.getCurrentEvRegistration();
+    final newState = !billboard.isActivated;
     
-    if (success) {
-      setState(() {
-        if (newState) {
-          _activeBillboards.add(billboard.billboardId);
-        } else {
-          _activeBillboards.remove(billboard.billboardId);
-        }
-      });
-
-      // Show feedback to user
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            newState
-                ? "✅ Billboard ${billboard.billboardNumber} manually activated!"
-                : "✅ Billboard ${billboard.billboardNumber} manually deactivated!",
-          ),
-          backgroundColor: newState ? Colors.green : Colors.blue,
-          duration: Duration(seconds: 2),
-        ),
+    try {
+      // Update local state first
+      supabaseService.updateBillboardStatus(billboard.billboardId, newState);
+      
+      // Attempt manual activation/deactivation
+      final success = await supabaseService.manualActivation(
+        billboard.billboardId, 
+        evRegistration, 
+        newState
       );
       
-      print('🔧 Billboard ${billboard.billboardNumber} manually ${newState ? 'activated' : 'deactivated'}');
-      
-      // Force update markers
-      _updateMarkers(supabaseService.billboards);
-      
-    } else {
-      // Revert local state if operation failed
-      supabaseService.updateBillboardStatus(billboard.billboardId, !newState);
-      _showError('Failed to ${newState ? 'activate' : 'deactivate'} billboard. Please try again.');
-    }
+      if (success) {
+        setState(() {
+          if (newState) {
+            _activeBillboards.add(billboard.billboardId);
+          } else {
+            _activeBillboards.remove(billboard.billboardId);
+          }
+        });
+
+        // Show feedback to user
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              newState
+                  ? "✅ Billboard ${billboard.billboardNumber} manually activated!"
+                  : "✅ Billboard ${billboard.billboardNumber} manually deactivated!",
+            ),
+            backgroundColor: newState ? Color(0xFF388E3C) : Color(0xFF1976D2),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        
+        print('🔧 Billboard ${billboard.billboardNumber} manually ${newState ? 'activated' : 'deactivated'}');
+        
+        // Force update markers
+        _updateMarkers(supabaseService.billboards);
+        
+      } else {
+        // Revert local state if operation failed
+        supabaseService.updateBillboardStatus(billboard.billboardId, !newState);
+        _showError('Failed to ${newState ? 'activate' : 'deactivate'} billboard. Please try again.');
+      }
   } catch (e) {
     print('❌ Error in manual toggle: $e');
     // Revert the local state
