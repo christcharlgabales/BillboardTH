@@ -38,9 +38,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   }
 
   void _initializeAnimations() {
-    _fadeController = AnimationController(duration: Duration(milliseconds: 1200), vsync: this);
-    _slideController = AnimationController(duration: Duration(milliseconds: 800), vsync: this);
-    _scaleController = AnimationController(duration: Duration(milliseconds: 1000), vsync: this);
+    _fadeController = AnimationController(duration: const Duration(milliseconds: 1200), vsync: this);
+    _slideController = AnimationController(duration: const Duration(milliseconds: 800), vsync: this);
+    _scaleController = AnimationController(duration: const Duration(milliseconds: 1000), vsync: this);
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut));
     _slideAnimation = Tween<Offset>(begin: Offset(0, 0.3), end: Offset.zero).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
@@ -49,9 +49,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   }
 
   void _startAnimations() {
-    Future.delayed(Duration(milliseconds: 200), () => _scaleController.forward());
-    Future.delayed(Duration(milliseconds: 400), () => _fadeController.forward());
-    Future.delayed(Duration(milliseconds: 600), () => _slideController.forward());
+    Future.delayed( const Duration(milliseconds: 200), () => _scaleController.forward());
+    Future.delayed( const Duration(milliseconds: 400), () => _fadeController.forward());
+    Future.delayed( const Duration(milliseconds: 600), () => _slideController.forward());
   }
 
   @override
