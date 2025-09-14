@@ -1,6 +1,9 @@
+//ev_info_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/supabase_service.dart';
+import '../models/emergency_vehicle.dart';
 
 class EVInfoScreen extends StatelessWidget {
   @override
@@ -23,7 +26,7 @@ class EVInfoScreen extends StatelessWidget {
                   if (isLoading) 
                     Expanded(child: _buildLoadingState())
                   else
-                    Expanded(child: _buildVehicleInfo(vehicle!)),
+                    Expanded(child: _buildVehicleInfo(vehicle)),
                 ],
               ),
             ),
@@ -123,48 +126,55 @@ class EVInfoScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildVehicleInfo(dynamic vehicle) {
-    return Column(
-      children: [
-        Expanded(
-          child: Column(
-            children: [
-              Expanded(
-                child: _buildInfoCard(
-                  title: 'Vehicle Type',
-                  value: vehicle.evType,
-                  icon: Icons.local_shipping,
-                  accentColor: Color(0xFFD32F2F),
-                ),
+  Widget _buildVehicleInfo(EmergencyVehicle vehicle) {
+  return Column(
+    children: [
+      Expanded(
+        child: Column(
+          children: [
+            Expanded(
+              child: _buildInfoCard(
+                title: 'Registration No.',
+                value: vehicle.evRegistrationNo,
+                icon: Icons.pin,
+                accentColor: Color(0xFF8B4B3B),
               ),
-              SizedBox(height: 12),
-              
-              Expanded(
-                child: _buildInfoCard(
-                  title: 'Agency',
-                  value: vehicle.agency,
-                  icon: Icons.account_balance_outlined,
-                  accentColor: Color(0xFF1976D2),
-                ),
+            ),
+            SizedBox(height: 12),
+            Expanded(
+              child: _buildInfoCard(
+                title: 'Vehicle Type',
+                value: vehicle.evType,
+                icon: Icons.local_shipping,
+                accentColor: Color(0xFFD32F2F),
               ),
-              SizedBox(height: 12),
-              
-              Expanded(
-                child: _buildInfoCard(
-                  title: 'Plate Number',
-                  value: vehicle.plateNumber,
-                  icon: Icons.credit_card,
-                  accentColor: Color(0xFF388E3C),
-                ),
+            ),
+            SizedBox(height: 12),
+            Expanded(
+              child: _buildInfoCard(
+                title: 'Agency',
+                value: vehicle.agency,
+                icon: Icons.account_balance_outlined,
+                accentColor: Color(0xFF1976D2),
               ),
-            ],
-          ),
+            ),
+            SizedBox(height: 12),
+            Expanded(
+              child: _buildInfoCard(
+                title: 'Plate Number',
+                value: vehicle.plateNumber,
+                icon: Icons.credit_card,
+                accentColor: Color(0xFF388E3C),
+              ),
+            ),
+          ],
         ),
-        SizedBox(height: 16),
-        _buildStatusCard(),
-      ],
-    );
-  }
+      ),
+      SizedBox(height: 16),
+      _buildStatusCard(),
+    ],
+  );
+}
 
   Widget _buildInfoCard({
     required String title,

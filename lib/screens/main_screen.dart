@@ -35,7 +35,7 @@ class _MainScreenState extends State<MainScreen> {
   Timer? _markerUpdateTimer;
   Position? _lastCameraPosition;
   List<Billboard>? _lastBillboardsState;
-  static const double _cameraUpdateThreshold = 0.001; // ~100m threshold
+  // static const double _cameraUpdateThreshold = 0.001; // ~100m threshold
   static const Duration _cameraUpdateDelay = Duration(milliseconds: 500);
   static const Duration _markerUpdateDelay = Duration(milliseconds: 300);
   

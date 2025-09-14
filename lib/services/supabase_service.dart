@@ -63,6 +63,47 @@ class SupabaseService extends ChangeNotifier {
   }
 }
 
+
+Future<bool> verifyEmergencyVehicle(String evRegistrationNo) async {
+    try {
+      final response = await _client
+          .from('emergencyvehicle')
+          .select()
+          .eq('ev_registration_no', evRegistrationNo)
+          .maybeSingle();
+      
+      if (response != null) {
+        _currentVehicle = EmergencyVehicle.fromJson(response);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Error verifying emergency vehicle: $e');
+      return false;
+    }
+  }
+
+Future<EmergencyVehicle?> getEmergencyVehicleDetails(String evRegistrationNo) async {
+    try {
+      final response = await _client
+          .from('emergencyvehicle')
+          .select()
+          .eq('ev_registration_no', evRegistrationNo)
+          .maybeSingle();
+      
+      if (response != null) {
+        return EmergencyVehicle.fromJson(response);
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error getting emergency vehicle details: $e');
+      return null;
+    }
+  }
+
+
+
   // Load user data by email
   Future<void> loadUserData(String email) async {
     try {
