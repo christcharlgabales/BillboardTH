@@ -527,38 +527,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
       ),
     );
   }
-  void _showLoadingDialog(String message) {
-  showDialog(
-    context: context,
-    barrierDismissible: false,
-    builder: (BuildContext context) {
-      return Dialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B4B3B)),
-              ),
-              SizedBox(height: 16),
-              Text(
-                message,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Color(0xFF8B4B3B),
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
-}
+  
 
   Widget _buildRegisterButton() {
   return Container(
