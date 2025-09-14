@@ -134,27 +134,36 @@ class _BillboardScreenState extends State<BillboardScreen> {
   }
 
   void _updateMarkers(List<Billboard> billboards) {
-    setState(() {
-      _markers = billboards.map((billboard) {
-        return Marker(
-          markerId: MarkerId(billboard.billboardId.toString()),
-          position: LatLng(billboard.latitude, billboard.longitude),
-          onTap: () => _selectBillboard(billboard.billboardId),
-          icon: BitmapDescriptor.defaultMarkerWithHue(
-            _selectedBillboardId == billboard.billboardId 
-                ? BitmapDescriptor.hueBlue
-                : billboard.isActivated 
-                    ? BitmapDescriptor.hueGreen 
-                    : BitmapDescriptor.hueRed,
-          ),
-          infoWindow: InfoWindow(
-            title: 'Billboard ${billboard.billboardNumber}',
-            snippet: '${billboard.location}\n${billboard.isActivated ? "ACTIVE" : "INACTIVE"}',
-          ),
-        );
-      }).toSet();
-    });
+  // Debug print
+  for (var billboard in billboards) {
+    print('Billboard ${billboard.billboardNumber}: isActivated = ${billboard.isActivated}');
   }
+  
+  setState(() {
+    _markers = billboards.map((billboard) {
+      final color = _selectedBillboardId == billboard.billboardId 
+          ? BitmapDescriptor.hueBlue
+          : billboard.isActivated 
+              ? BitmapDescriptor.hueGreen 
+              : BitmapDescriptor.hueRed;
+      
+      print('Billboard ${billboard.billboardNumber} color: $color');
+      
+      return Marker(
+        markerId: MarkerId(billboard.billboardId.toString()),
+        position: LatLng(billboard.latitude, billboard.longitude),
+        onTap: () => _selectBillboard(billboard.billboardId),
+        icon: BitmapDescriptor.defaultMarkerWithHue(color),
+        infoWindow: InfoWindow(
+          title: 'Billboard ${billboard.billboardNumber}',
+          snippet: '${billboard.location}\n${billboard.isActivated ? "ACTIVE" : "INACTIVE"}',
+        ),
+      );
+    }).toSet();
+  });
+}
+
+
 
   void _selectBillboard(int billboardId) {
     setState(() {

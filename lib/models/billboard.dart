@@ -25,10 +25,18 @@ class Billboard {
       latitude: double.parse(json['latitude'].toString()),
       longitude: double.parse(json['longitude'].toString()),
       createdAt: DateTime.parse(json['created_at'] as String),
-      isActivated: json['isActivated'] as bool? ?? false,
+      isActivated: _parseBool(json['is_activated']),
     );
   }
-
+static bool _parseBool(dynamic value) {
+  if (value == null) return false;
+  if (value is bool) return value;
+  if (value is String) {
+    return value.toLowerCase() == 'true' || value == '1';
+  }
+  if (value is int) return value == 1;
+  return false;
+}
 
   // To JSON if you need to send it back to Supabase
   Map<String, dynamic> toJson() {
@@ -38,7 +46,7 @@ class Billboard {
       'location': location,
       'latitude': latitude,
       'longitude': longitude,
-      'isActivated': isActivated,
+      'is_activated': isActivated,
     };
   }
 }

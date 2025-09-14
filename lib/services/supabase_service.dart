@@ -564,7 +564,7 @@ Future<void> checkForDuplicates(String email) async {
         location: _billboards[index].location,
         latitude: _billboards[index].latitude,
         longitude: _billboards[index].longitude,
-        createdAt: _billboards[index].createdAt, // Add this line
+        createdAt: _billboards[index].createdAt,
         isActivated: isActivated,
       );
       notifyListeners();
