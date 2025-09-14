@@ -1,9 +1,6 @@
-//ev_info_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/supabase_service.dart';
-import '../models/emergency_vehicle.dart';
 
 class EVInfoScreen extends StatelessWidget {
   @override
@@ -26,7 +23,7 @@ class EVInfoScreen extends StatelessWidget {
                   if (isLoading) 
                     Expanded(child: _buildLoadingState())
                   else
-                    Expanded(child: _buildVehicleInfo(vehicle)),
+                    Expanded(child: _buildVehicleInfo(vehicle!)),
                 ],
               ),
             ),
@@ -126,50 +123,46 @@ class EVInfoScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildVehicleInfo(EmergencyVehicle vehicle) {
-    return SingleChildScrollView(
-      child: Column(
-        children: [
-          // Registration Number Card
-          _buildInfoCard(
-            title: 'Registration No.',
-            value: vehicle.evRegistrationNo,
-            icon: Icons.pin,
-            accentColor: Color(0xFF8B4B3B),
+  Widget _buildVehicleInfo(dynamic vehicle) {
+    return Column(
+      children: [
+        Expanded(
+          child: Column(
+            children: [
+              Expanded(
+                child: _buildInfoCard(
+                  title: 'Vehicle Type',
+                  value: vehicle.evType,
+                  icon: Icons.local_shipping,
+                  accentColor: Color(0xFFD32F2F),
+                ),
+              ),
+              SizedBox(height: 12),
+              
+              Expanded(
+                child: _buildInfoCard(
+                  title: 'Agency',
+                  value: vehicle.agency,
+                  icon: Icons.account_balance_outlined,
+                  accentColor: Color(0xFF1976D2),
+                ),
+              ),
+              SizedBox(height: 12),
+              
+              Expanded(
+                child: _buildInfoCard(
+                  title: 'Plate Number',
+                  value: vehicle.plateNumber,
+                  icon: Icons.credit_card,
+                  accentColor: Color(0xFF388E3C),
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 16),
-          
-          // Vehicle Type Card
-          _buildInfoCard(
-            title: 'Vehicle Type',
-            value: vehicle.evType,
-            icon: Icons.local_shipping,
-            accentColor: Color(0xFFD32F2F),
-          ),
-          SizedBox(height: 16),
-          
-          // Agency Card
-          _buildInfoCard(
-            title: 'Agency',
-            value: vehicle.agency,
-            icon: Icons.account_balance_outlined,
-            accentColor: Color(0xFF1976D2),
-          ),
-          SizedBox(height: 16),
-          
-          // Plate Number Card
-          _buildInfoCard(
-            title: 'Plate Number',
-            value: vehicle.plateNumber,
-            icon: Icons.credit_card,
-            accentColor: Color(0xFF388E3C),
-          ),
-          SizedBox(height: 20),
-          
-          // Status Card
-          _buildStatusCard(),
-        ],
-      ),
+        ),
+        SizedBox(height: 16),
+        _buildStatusCard(),
+      ],
     );
   }
 
@@ -183,70 +176,67 @@ class EVInfoScreen extends StatelessWidget {
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(
           color: Color(0xFF8B4B3B).withOpacity(0.2),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 6,
-            offset: Offset(0, 3),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: Offset(0, 2),
           ),
         ],
       ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         children: [
-          // Header section
           Container(
             width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Color(0xFF8B4B3B),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: EdgeInsets.all(6),
+                  padding: EdgeInsets.all(4),
                   decoration: BoxDecoration(
                     color: accentColor,
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(4),
                   ),
                   child: Icon(
                     icon,
                     color: Colors.white,
-                    size: 18,
+                    size: 16,
                   ),
                 ),
-                SizedBox(width: 12),
+                SizedBox(width: 8),
                 Text(
                   title.toUpperCase(),
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    letterSpacing: 0.5,
                   ),
                 ),
               ],
             ),
           ),
-          
-          // Content section
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(20),
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF2E2E2E),
-                height: 1.2,
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(12),
+              alignment: Alignment.center,
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2E2E2E),
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
           ),
         ],
@@ -257,35 +247,35 @@ class EVInfoScreen extends StatelessWidget {
   Widget _buildStatusCard() {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(16),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF388E3C), Color(0xFF2E7D32)],
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(10),
         boxShadow: [
           BoxShadow(
             color: Color(0xFF388E3C).withOpacity(0.3),
-            blurRadius: 8,
-            offset: Offset(0, 3),
+            blurRadius: 6,
+            offset: Offset(0, 2),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(8),
+            padding: EdgeInsets.all(6),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(6),
             ),
             child: Icon(
               Icons.verified_outlined,
               color: Color(0xFF388E3C),
-              size: 20,
+              size: 18,
             ),
           ),
-          SizedBox(width: 16),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -293,17 +283,15 @@ class EVInfoScreen extends StatelessWidget {
                 Text(
                   'ACTIVE STATUS',
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                    letterSpacing: 0.5,
                   ),
                 ),
-                SizedBox(height: 2),
                 Text(
                   'Vehicle verified and operational',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 10,
                     color: Colors.white.withOpacity(0.9),
                   ),
                 ),
