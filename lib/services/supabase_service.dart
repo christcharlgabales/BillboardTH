@@ -63,49 +63,171 @@ class SupabaseService extends ChangeNotifier {
   }
 }
 
-  // Load user data by email
-  Future<void> loadUserData(String email) async {
+
+Future<bool> verifyEmergencyVehicle(String evRegistrationNo) async {
     try {
-      // First, try to get user from users table
-      final userResponse = await _client
-          .from('users')
-          .select('*')
-          .eq('email', email)
+      final response = await _client
+          .from('emergencyvehicle')
+          .select()
+          .eq('ev_registration_no', evRegistrationNo)
           .maybeSingle();
       
-      if (userResponse != null) {
-        _currentUser = AppUser.fromJson(userResponse);
-
-        // Then get vehicle data using the registration number
-        final vehicleResponse = await _client
-            .from('emergencyvehicle')
-            .select('*')
-            .eq('ev_registration_no', _currentUser!.evRegistrationNo)
-            .maybeSingle();
-        
-        if (vehicleResponse != null) {
-          _currentVehicle = EmergencyVehicle.fromJson(vehicleResponse);
-        }
-      } else {
-        // If no user found in users table, try to find directly in emergencyvehicle table
-        final vehicleResponse = await _client
-            .from('emergencyvehicle')
-            .select('*')
-            .eq('ev_registration_no', email)
-            .maybeSingle();
-        
-        if (vehicleResponse != null) {
-          _currentVehicle = EmergencyVehicle.fromJson(vehicleResponse);
-          print('✅ Emergency vehicle data loaded directly: ${_currentVehicle!.evRegistrationNo}');
-        }
+      if (response != null) {
+        _currentVehicle = EmergencyVehicle.fromJson(response);
+        notifyListeners();
+        return true;
       }
-      
-      notifyListeners();
-      print('✅ User data loading completed for: $email');
+      return false;
     } catch (e) {
-      print('❌ Error loading user data: $e');
+      print('❌ Error verifying emergency vehicle: $e');
+      return false;
     }
   }
+
+Future<EmergencyVehicle?> getEmergencyVehicleDetails(String evRegistrationNo) async {
+    try {
+      final response = await _client
+          .from('emergencyvehicle')
+          .select()
+          .eq('ev_registration_no', evRegistrationNo)
+          .maybeSingle();
+      
+      if (response != null) {
+        return EmergencyVehicle.fromJson(response);
+      }
+      return null;
+    } catch (e) {
+      print('❌ Error getting emergency vehicle details: $e');
+      return null;
+    }
+  }
+
+
+
+  Future<void> loadUserData(String email) async {
+  try {
+    print('🔄 Loading user data for: $email');
+    
+    // First, try to get user from users table - handle multiple rows
+    final userResponse = await _client
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .limit(1); // Limit to 1 row to avoid multiple rows issue
+    
+    if (userResponse.isNotEmpty) {
+      // Take the first user if multiple exist
+      _currentUser = AppUser.fromJson(userResponse.first);
+      print('✅ User data loaded from users table: ${_currentUser!.name}');
+
+      // If there are multiple users with same email, log a warning
+      if (userResponse.length > 1) {
+        print('⚠️ WARNING: Multiple users found with email $email. Using the first one.');
+        print('⚠️ Consider cleaning up duplicate entries in the database.');
+      }
+
+      // Then get vehicle data using the registration number
+      final vehicleResponse = await _client
+          .from('emergencyvehicle')
+          .select('*')
+          .eq('ev_registration_no', _currentUser!.evRegistrationNo)
+          .limit(1); // Also limit vehicle query
+      
+      if (vehicleResponse.isNotEmpty) {
+        _currentVehicle = EmergencyVehicle.fromJson(vehicleResponse.first);
+        print('✅ Emergency vehicle data loaded: ${_currentVehicle!.evRegistrationNo}');
+        
+        if (vehicleResponse.length > 1) {
+          print('⚠️ WARNING: Multiple vehicles found with registration ${_currentUser!.evRegistrationNo}. Using the first one.');
+        }
+      } else {
+        print('⚠️ No vehicle found for registration: ${_currentUser!.evRegistrationNo}');
+      }
+    } else {
+      print('🔍 No user found in users table, trying emergencyvehicle table...');
+      
+      // If no user found in users table, try to find directly in emergencyvehicle table
+      final vehicleResponse = await _client
+          .from('emergencyvehicle')
+          .select('*')
+          .eq('ev_registration_no', email)
+          .limit(1); // Limit this query too
+      
+      if (vehicleResponse.isNotEmpty) {
+        _currentVehicle = EmergencyVehicle.fromJson(vehicleResponse.first);
+        print('✅ Emergency vehicle data loaded directly: ${_currentVehicle!.evRegistrationNo}');
+        
+        if (vehicleResponse.length > 1) {
+          print('⚠️ WARNING: Multiple vehicles found with registration $email. Using the first one.');
+        }
+      } else {
+        print('⚠️ No data found in either users or emergencyvehicle table for: $email');
+      }
+    }
+    
+    notifyListeners();
+    print('✅ User data loading completed for: $email');
+    
+  } catch (e) {
+    print('❌ Error loading user data: $e');
+    
+    // Provide more detailed error information
+    if (e is PostgrestException) {
+      print('❌ PostgreSQL Error Details:');
+      print('   Code: ${e.code}');
+      print('   Message: ${e.message}');
+      print('   Details: ${e.details}');
+      print('   Hint: ${e.hint}');
+    }
+    
+    // Clear any partially loaded data on error
+    _currentUser = null;
+    _currentVehicle = null;
+    notifyListeners();
+  }
+}
+
+
+Future<void> checkForDuplicates(String email) async {
+  try {
+    print('🔍 Checking for duplicate entries...');
+    
+    // Check users table
+    final userDuplicates = await _client
+        .from('users')
+        .select('userid, name, email, ev_registration_no')
+        .eq('email', email);
+    
+    if (userDuplicates.length > 1) {
+      print('⚠️ DUPLICATE USERS FOUND:');
+      for (int i = 0; i < userDuplicates.length; i++) {
+        final user = userDuplicates[i];
+        print('   User ${i + 1}: ID=${user['userid']}, Name=${user['name']}, EV=${user['ev_registration_no']}');
+      }
+      print('🔧 Recommendation: Clean up duplicate user entries in the database');
+    }
+    
+    // If we have a current user, check for vehicle duplicates
+    if (_currentUser != null) {
+      final vehicleDuplicates = await _client
+          .from('emergencyvehicle')
+          .select('evid, ev_registration_no, ev_type')
+          .eq('ev_registration_no', _currentUser!.evRegistrationNo);
+      
+      if (vehicleDuplicates.length > 1) {
+        print('⚠️ DUPLICATE VEHICLES FOUND:');
+        for (int i = 0; i < vehicleDuplicates.length; i++) {
+          final vehicle = vehicleDuplicates[i];
+          print('   Vehicle ${i + 1}: ID=${vehicle['evid']}, Registration=${vehicle['ev_registration_no']}, Type=${vehicle['ev_type']}');
+        }
+        print('🔧 Recommendation: Clean up duplicate vehicle entries in the database');
+      }
+    }
+    
+  } catch (e) {
+    print('❌ Error checking for duplicates: $e');
+  }
+}
 
   // AVATAR UPLOAD FUNCTIONALITY
   /// Upload user avatar to Supabase Storage and update user record

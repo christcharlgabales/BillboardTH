@@ -1,7 +1,11 @@
+//signup_screen.dart
+
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart'; 
 import 'package:supabase/supabase.dart';
+import '../services/supabase_service.dart';
 
 class SignupScreen extends StatefulWidget {
   @override
@@ -18,6 +22,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  
   String _selectedRole = 'Select';
 
   final List<String> _roles = ['Select', 'Driver', 'Administrator'];
@@ -38,9 +43,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   }
 
   void _initializeAnimations() {
-    _fadeController = AnimationController(duration: Duration(milliseconds: 1200), vsync: this);
-    _slideController = AnimationController(duration: Duration(milliseconds: 800), vsync: this);
-    _scaleController = AnimationController(duration: Duration(milliseconds: 1000), vsync: this);
+    _fadeController = AnimationController(duration: const Duration(milliseconds: 1200), vsync: this);
+    _slideController = AnimationController(duration: const Duration(milliseconds: 800), vsync: this);
+    _scaleController = AnimationController(duration: const Duration(milliseconds: 1000), vsync: this);
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut));
     _slideAnimation = Tween<Offset>(begin: Offset(0, 0.3), end: Offset.zero).animate(CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic));
@@ -49,9 +54,9 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   }
 
   void _startAnimations() {
-    Future.delayed(Duration(milliseconds: 200), () => _scaleController.forward());
-    Future.delayed(Duration(milliseconds: 400), () => _fadeController.forward());
-    Future.delayed(Duration(milliseconds: 600), () => _slideController.forward());
+    Future.delayed( const Duration(milliseconds: 200), () => _scaleController.forward());
+    Future.delayed( const Duration(milliseconds: 400), () => _fadeController.forward());
+    Future.delayed( const Duration(milliseconds: 600), () => _slideController.forward());
   }
 
   @override
@@ -68,50 +73,67 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   }
 
   Future<void> _signup() async {
-    if (!_formKey.currentState!.validate()) return;
+  if (!_formKey.currentState!.validate()) return;
 
-    if (_selectedRole == 'Select') {
-      _showErrorSnackBar('Please select a role');
-      return;
+  if (_selectedRole == 'Select') {
+    _showErrorSnackBar('Please select a role');
+    return;
+  }
+
+  setState(() => _isLoading = true);
+
+  try {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+
+    // Only verify EV registration for driver role
+    if (_selectedRole.toLowerCase() == 'driver') {
+      final evRegistrationNo = _evRegistrationController.text.trim();
+      
+      // First check if EV exists and is valid
+      final isValidEV = await supabaseService.verifyEmergencyVehicle(evRegistrationNo);
+      
+      if (!isValidEV) {
+        _showErrorSnackBar('Invalid Emergency Vehicle Registration Number');
+        setState(() => _isLoading = false);
+        return;
+      }
     }
 
-    setState(() => _isLoading = true);
+    // Proceed with signup after EV verification
+    final response = await authService.signUpWithEmail(
+      email: _emailController.text.trim(),
+      password: _passwordController.text,
+      name: _nameController.text.trim(),
+      role: _selectedRole,
+      evRegistrationNo: _selectedRole.toLowerCase() == 'driver' 
+          ? _evRegistrationController.text.trim() 
+          : null,
+    );
 
-    try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final response = await authService.signUpWithEmail(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-        name: _nameController.text.trim(),
-        role: _selectedRole,
-        evRegistrationNo: _evRegistrationController.text.trim(),
-      );
-
-      if (response.user != null) {
-        await authService.signOut();
-
-        if (mounted) {
-          _showSuccessSnackBar('Registration successful! Please login to continue.');
-
-          await Future.delayed(Duration(seconds: 2));
-
-          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-        }
-      }
-    } on AuthException catch (error) {
+    if (response.user != null) {
+      await authService.signOut();
+      
       if (mounted) {
-        _showErrorSnackBar(error.message);
+        _showSuccessSnackBar('Registration successful! Please login to continue.');
+        await Future.delayed(Duration(seconds: 2));
+        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
       }
-    } catch (error) {
-      if (mounted) {
-        _showErrorSnackBar('An unexpected error occurred: $error');
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+    }
+  } on AuthException catch (error) {
+    if (mounted) {
+      _showErrorSnackBar(error.message);
+    }
+  } catch (error) {
+    if (mounted) {
+      _showErrorSnackBar('An unexpected error occurred: $error');
+    }
+  } finally {
+    if (mounted) {
+      setState(() => _isLoading = false);
     }
   }
+}
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -505,6 +527,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
       ),
     );
   }
+  
 
   Widget _buildRegisterButton() {
   return Container(
@@ -565,3 +588,4 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
 
 
 }
+
