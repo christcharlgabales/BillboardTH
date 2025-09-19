@@ -104,7 +104,8 @@ Future<EmergencyVehicle?> getEmergencyVehicleDetails(String evRegistrationNo) as
 
 
 
-  Future<void> loadUserData(String email) async {
+  @override
+Future<void> loadUserData(String email) async {
   try {
     print('🔄 Loading user data for: $email');
     
@@ -164,9 +165,17 @@ Future<EmergencyVehicle?> getEmergencyVehicleDetails(String evRegistrationNo) as
         print('⚠️ No data found in either users or emergencyvehicle table for: $email');
       }
     }
-    
+
+    // ✅ Cleanup after successful load
+    if (_currentVehicle != null || _currentUser != null) {
+      final evRegistration = getCurrentEvRegistration();
+      await cleanupUserAlerts(evRegistration);
+    }
+
+    await cleanupExpiredAlerts();
+
     notifyListeners();
-    print('✅ User data loading completed for: $email');
+    print('✅ User data loading completed with cleanup for: $email');
     
   } catch (e) {
     print('❌ Error loading user data: $e');
@@ -186,6 +195,7 @@ Future<EmergencyVehicle?> getEmergencyVehicleDetails(String evRegistrationNo) as
     notifyListeners();
   }
 }
+
 
 
 Future<void> checkForDuplicates(String email) async {
@@ -667,27 +677,117 @@ Future<void> checkForDuplicates(String email) async {
       print('❌ Debug test error: $e');
     }
   }
-  Future<void> signOut() async {
-    try {
-      print('🔄 Signing out user...');
+Future<void> cleanupExpiredAlerts({int expirationMinutes = 15}) async {
+  try {
+    print('🧹 Cleaning up expired alerts (older than $expirationMinutes minutes)...');
+    
+    final expiredTime = DateTime.now()
+        .subtract(Duration(minutes: expirationMinutes))
+        .toIso8601String();
+    
+    // Get expired alerts for logging
+    final expiredAlerts = await _client
+        .from('alerts')
+        .select('*')
+        .lt('triggered_at', expiredTime);
+    
+    if (expiredAlerts.isNotEmpty) {
+      print('🔍 Found ${expiredAlerts.length} expired alerts to clean up');
       
-      // Sign out from Supabase Auth
-      await _client.auth.signOut();
+      // Log each expired alert as AUTO_EXPIRED
+      for (var alert in expiredAlerts) {
+        await _logFailedAttempt(
+          alert['billboard_id'], 
+          alert['ev_registration_no'], 
+          'AUTO_EXPIRED', 
+          'Alert expired after $expirationMinutes minutes'
+        );
+      }
       
-      // Clear all cached user data
-      _currentUser = null;
-      _currentVehicle = null;
-      _billboards = [];
+      // Delete expired alerts
+      await _client
+          .from('alerts')
+          .delete()
+          .lt('triggered_at', expiredTime);
       
-      // Notify all listeners about the state change
-      notifyListeners();
-      
-      print('✅ User signed out successfully');
-    } catch (e) {
-      print('❌ Error signing out: $e');
-      rethrow; // Re-throw the error so the UI can handle it
+      print('✅ Cleaned up ${expiredAlerts.length} expired alerts');
+    } else {
+      print('✅ No expired alerts found');
     }
+    
+  } catch (e) {
+    print('❌ Error cleaning up expired alerts: $e');
   }
+}
+
+Future<void> cleanupUserAlerts(String evRegistrationNo) async {
+  try {
+    print('🧹 Cleaning up old alerts for vehicle: $evRegistrationNo');
+    
+    // Get existing alerts for this vehicle
+    final existingAlerts = await _client
+        .from('alerts')
+        .select('*')
+        .eq('ev_registration_no', evRegistrationNo);
+    
+    if (existingAlerts.isNotEmpty) {
+      print('🔍 Found ${existingAlerts.length} existing alerts for $evRegistrationNo');
+      
+      // Log each as cleaned up
+      for (var alert in existingAlerts) {
+        await _client.from('alertlog').insert({
+          'date': DateTime.now().toIso8601String().split('T')[0],
+          'time': DateTime.now().toIso8601String().split('T')[1].split('.')[0],
+          'billboardid': alert['billboard_id'],
+          'ev_registration_no': evRegistrationNo,
+          'type_of_activation': 'AUTO_CLEANUP',
+          'result': 'User logged in - cleaning old alerts',
+          'created_at': DateTime.now().toIso8601String(),
+        });
+      }
+      
+      // Remove all existing alerts for this vehicle
+      await _client
+          .from('alerts')
+          .delete()
+          .eq('ev_registration_no', evRegistrationNo);
+      
+      print('✅ Cleaned up ${existingAlerts.length} old alerts for $evRegistrationNo');
+    }
+    
+  } catch (e) {
+    print('❌ Error cleaning up user alerts: $e');
+  }
+}
+
+  @override
+Future<void> signOut() async {
+  try {
+    print('🔄 Signing out user...');
+    
+    // Clean up any active alerts for this user before signing out
+    final evRegistration = getCurrentEvRegistration();
+    if (evRegistration != 'UNKNOWN_VEHICLE') {
+      await cleanupUserAlerts(evRegistration);
+    }
+    
+    // Sign out from Supabase Auth
+    await _client.auth.signOut();
+    
+    // Clear all cached user data
+    _currentUser = null;
+    _currentVehicle = null;
+    _billboards = [];
+    
+    // Notify all listeners about the state change
+    notifyListeners();
+    
+    print('✅ User signed out successfully with cleanup');
+  } catch (e) {
+    print('❌ Error signing out: $e');
+    rethrow;
+  }
+}
 
   /// Signs out the current user from all devices
   Future<void> signOutFromAllDevices() async {
