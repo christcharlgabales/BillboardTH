@@ -1,6 +1,5 @@
 //signup_screen.dart
 
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart'; 
@@ -73,67 +72,67 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
   }
 
   Future<void> _signup() async {
-  if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) return;
 
-  if (_selectedRole == 'Select') {
-    _showErrorSnackBar('Please select a role');
-    return;
-  }
-
-  setState(() => _isLoading = true);
-
-  try {
-    final authService = Provider.of<AuthService>(context, listen: false);
-    final supabaseService = Provider.of<SupabaseService>(context, listen: false);
-
-    // Only verify EV registration for driver role
-    if (_selectedRole.toLowerCase() == 'driver') {
-      final evRegistrationNo = _evRegistrationController.text.trim();
-      
-      // First check if EV exists and is valid
-      final isValidEV = await supabaseService.verifyEmergencyVehicle(evRegistrationNo);
-      
-      if (!isValidEV) {
-        _showErrorSnackBar('Invalid Emergency Vehicle Registration Number');
-        setState(() => _isLoading = false);
-        return;
-      }
+    if (_selectedRole == 'Select') {
+      _showErrorSnackBar('Please select a role');
+      return;
     }
 
-    // Proceed with signup after EV verification
-    final response = await authService.signUpWithEmail(
-      email: _emailController.text.trim(),
-      password: _passwordController.text,
-      name: _nameController.text.trim(),
-      role: _selectedRole,
-      evRegistrationNo: _selectedRole.toLowerCase() == 'driver' 
-          ? _evRegistrationController.text.trim() 
-          : null,
-    );
+    setState(() => _isLoading = true);
 
-    if (response.user != null) {
-      await authService.signOut();
-      
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+
+      // Only verify EV registration for driver role
+      if (_selectedRole.toLowerCase() == 'driver') {
+        final evRegistrationNo = _evRegistrationController.text.trim();
+        
+        // First check if EV exists and is valid
+        final isValidEV = await supabaseService.verifyEmergencyVehicle(evRegistrationNo);
+        
+        if (!isValidEV) {
+          _showErrorSnackBar('Invalid Emergency Vehicle Registration Number');
+          setState(() => _isLoading = false);
+          return;
+        }
+      }
+
+      // Proceed with signup after EV verification
+      final response = await authService.signUpWithEmail(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        name: _nameController.text.trim(),
+        role: _selectedRole,
+        evRegistrationNo: _selectedRole.toLowerCase() == 'driver' 
+            ? _evRegistrationController.text.trim() 
+            : null,
+      );
+
+      if (response.user != null) {
+        await authService.signOut();
+        
+        if (mounted) {
+          _showSuccessSnackBar('Registration successful! Please login to continue.');
+          await Future.delayed(Duration(seconds: 2));
+          Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        }
+      }
+    } on AuthException catch (error) {
       if (mounted) {
-        _showSuccessSnackBar('Registration successful! Please login to continue.');
-        await Future.delayed(Duration(seconds: 2));
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
+        _showErrorSnackBar(error.message);
+      }
+    } catch (error) {
+      if (mounted) {
+        _showErrorSnackBar('An unexpected error occurred: $error');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
       }
     }
-  } on AuthException catch (error) {
-    if (mounted) {
-      _showErrorSnackBar(error.message);
-    }
-  } catch (error) {
-    if (mounted) {
-      _showErrorSnackBar('An unexpected error occurred: $error');
-    }
-  } finally {
-    if (mounted) {
-      setState(() => _isLoading = false);
-    }
   }
-}
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -192,133 +191,142 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
           ),
         ),
         child: SafeArea(
-          child: SingleChildScrollView( // Make the whole screen scrollable to avoid overflow
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                children: [
-                  // Custom App Bar
-                  Padding(
-                    padding: EdgeInsets.all(8),
-                    child: Row(
-                      children: [
-                        Container(
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            icon: Icon(Icons.arrow_back, color: Colors.white),
-                            onPressed: () => Navigator.pop(context),
-                          ),
-                        ),
-                        Expanded(
-                          child: Center(
-                            child: Text(
-                              'Create Account',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16, // Reduced size to fit screen
-                                fontWeight: FontWeight.bold,
-                              ),
+          child: Column(
+            children: [
+              // Header section with fixed height
+              Container(
+                height: 200,
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Column(
+                  children: [
+                    // Custom App Bar
+                    Padding(
+                      padding: EdgeInsets.all(8),
+                      child: Row(
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: IconButton(
+                              icon: Icon(Icons.arrow_back, color: Colors.white),
+                              onPressed: () => Navigator.pop(context),
                             ),
                           ),
-                        ),
-                        SizedBox(width: 48), // Balance the back button
-                      ],
-                    ),
-                  ),
-
-                  // Logo and Title
-                  AnimatedBuilder(
-                    animation: _logoScaleAnimation,
-                    builder: (context, child) {
-                      return Transform.scale(
-                        scale: _logoScaleAnimation.value,
-                        child: Column(
-                          children: [
-                            Container(
-                              padding: EdgeInsets.all(6),
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: Colors.white,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black26,
-                                    blurRadius: 15,
-                                    offset: Offset(0, 8),
-                                  ),
-                                ],
-                              ),
-                              child: Container(
-                                width: 60,
-                                height: 60,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Color(0xFF8B4B3B), width: 2),
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(35),
-                                  child: Image.asset('assets/icon.jpg', fit: BoxFit.cover),
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 8),
-                            FadeTransition(
-                              opacity: _fadeAnimation,
+                          Expanded(
+                            child: Center(
                               child: Text(
-                                'ALERT TO DIVERT',
+                                'Create Account',
                                 style: TextStyle(
-                                  fontSize: 14, // Reduced size for compactness
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.5,
                                   color: Colors.white,
-                                  shadows: [
-                                    Shadow(
-                                      color: Colors.black26,
-                                      offset: Offset(0, 2),
-                                      blurRadius: 4,
-                                    ),
-                                  ],
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-
-                  SizedBox(height: 16),
-
-                  // Animated Form
-                  Container(
-                    margin: EdgeInsets.symmetric(horizontal: 16),
-                    padding: EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(32),
-                        topRight: Radius.circular(32),
+                          ),
+                          SizedBox(width: 48),
+                        ],
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.3),
-                          blurRadius: 25,
-                          offset: Offset(0, -10),
-                        ),
-                      ],
                     ),
+
+                    // Logo and Title
+                    Expanded(
+                      child: AnimatedBuilder(
+                        animation: _logoScaleAnimation,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _logoScaleAnimation.value,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: Colors.white,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black26,
+                                        blurRadius: 15,
+                                        offset: Offset(0, 8),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Container(
+                                    width: 60,
+                                    height: 60,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(color: Color(0xFF8B4B3B), width: 2),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(35),
+                                      child: Image.asset('assets/icon.jpg', fit: BoxFit.cover),
+                                    ),
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                FadeTransition(
+                                  opacity: _fadeAnimation,
+                                  child: Text(
+                                    'ALERT TO DIVERT',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.5,
+                                      color: Colors.white,
+                                      shadows: [
+                                        Shadow(
+                                          color: Colors.black26,
+                                          offset: Offset(0, 2),
+                                          blurRadius: 4,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Form section - takes remaining space
+              Expanded(
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(32),
+                      topRight: Radius.circular(32),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 25,
+                        offset: Offset(0, -10),
+                      ),
+                    ],
+                  ),
+                  child: SingleChildScrollView(
                     child: Form(
                       key: _formKey,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
-                            'Register', // Changed text for clarity
+                            'Register',
                             style: TextStyle(
                               color: Color(0xFF8B4B3B),
-                              fontSize: 18, // Adjusted font size
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
                             ),
                             textAlign: TextAlign.center,
@@ -409,14 +417,14 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                           // Register Button
                           _buildRegisterButton(),
 
-                          SizedBox(height: 8),
+                          SizedBox(height: 16),
                         ],
                       ),
                     ),
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -528,64 +536,60 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
     );
   }
   
-
   Widget _buildRegisterButton() {
-  return Container(
-    height: 48,
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(16),
-      gradient: LinearGradient(
-        colors: [Color(0xFF8B4B3B), Color(0xFF6D3B2E)],
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: Color(0xFF8B4B3B).withOpacity(0.4),
-          blurRadius: 15,
-          offset: Offset(0, 8),
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [Color(0xFF8B4B3B), Color(0xFF6D3B2E)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
         ),
-      ],
-    ),
-    child: ElevatedButton(
-      onPressed: _isLoading ? null : _signup,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.transparent,
-        shadowColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xFF8B4B3B).withOpacity(0.4),
+            blurRadius: 15,
+            offset: Offset(0, 8),
+          ),
+        ],
       ),
-      child: _isLoading
-          ? SizedBox(
-              height: 24,
-              width: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
-            )
-          : Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.person_add, color: Colors.white),
-                SizedBox(width: 12),
-                Text(
-                  'CREATE ACCOUNT',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12, // Adjust font size to fit better
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1,
-                    overflow: TextOverflow.ellipsis, // Prevent overflow
-                  ),
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _signup,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: _isLoading
+            ? SizedBox(
+                height: 24,
+                width: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
-              ],
-            ),
-    ),
-  );
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.person_add, color: Colors.white),
+                  SizedBox(width: 12),
+                  Text(
+                    'CREATE ACCOUNT',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
 }
-
-
-}
-
