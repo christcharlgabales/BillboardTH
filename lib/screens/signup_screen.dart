@@ -191,132 +191,120 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              // Header section with fixed height
-              Container(
-                height: 200,
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  children: [
-                    // Custom App Bar
-                    Padding(
-                      padding: EdgeInsets.all(8),
-                      child: Row(
-                        children: [
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: IconButton(
-                              icon: Icon(Icons.arrow_back, color: Colors.white),
-                              onPressed: () => Navigator.pop(context),
-                            ),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Column(
+                children: [
+                  // Custom App Bar
+                  Padding(
+                    padding: EdgeInsets.all(8),
+                    child: Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          Expanded(
-                            child: Center(
-                              child: Text(
-                                'Create Account',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                          child: IconButton(
+                            icon: Icon(Icons.arrow_back, color: Colors.white),
+                            onPressed: () => Navigator.pop(context),
+                          ),
+                        ),
+                        Expanded(
+                          child: Center(
+                            child: Text(
+                              'Create Account',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
                               ),
                             ),
                           ),
-                          SizedBox(width: 48),
-                        ],
-                      ),
+                        ),
+                        SizedBox(width: 48),
+                      ],
                     ),
-
-                    // Logo and Title
-                    Expanded(
-                      child: AnimatedBuilder(
-                        animation: _logoScaleAnimation,
-                        builder: (context, child) {
-                          return Transform.scale(
-                            scale: _logoScaleAnimation.value,
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Container(
-                                  padding: EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.black26,
-                                        blurRadius: 15,
-                                        offset: Offset(0, 8),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Container(
-                                    width: 60,
-                                    height: 60,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Color(0xFF8B4B3B), width: 2),
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(35),
-                                      child: Image.asset('assets/icon.jpg', fit: BoxFit.cover),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                FadeTransition(
-                                  opacity: _fadeAnimation,
-                                  child: Text(
-                                    'ALERT TO DIVERT',
-                                    style: TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.5,
-                                      color: Colors.white,
-                                      shadows: [
-                                        Shadow(
-                                          color: Colors.black26,
-                                          offset: Offset(0, 2),
-                                          blurRadius: 4,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Form section - takes remaining space
-              Expanded(
-                child: Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(32),
-                      topRight: Radius.circular(32),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 25,
-                        offset: Offset(0, -10),
-                      ),
-                    ],
                   ),
-                  child: SingleChildScrollView(
+
+                  // Logo and Title
+                  AnimatedBuilder(
+                    animation: _logoScaleAnimation,
+                    builder: (context, child) {
+                      return Transform.scale(
+                        scale: _logoScaleAnimation.value,
+                        child: Column(
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 15,
+                                    offset: Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: Container(
+                                width: 60,
+                                height: 60,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Color(0xFF8B4B3B), width: 2),
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(35),
+                                  child: Image.asset('assets/icon.jpg', fit: BoxFit.cover),
+                                ),
+                              ),
+                            ),
+                            SizedBox(height: 8),
+                            FadeTransition(
+                              opacity: _fadeAnimation,
+                              child: Text(
+                                'ALERT TO DIVERT',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.5,
+                                  color: Colors.white,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black26,
+                                      offset: Offset(0, 2),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+
+                  SizedBox(height: 24),
+
+                  // Floating Form Card
+                  Container(
+                    margin: EdgeInsets.symmetric(horizontal: 8),
+                    padding: EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(32),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 25,
+                          offset: Offset(0, 10),
+                        ),
+                      ],
+                    ),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -332,7 +320,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                             textAlign: TextAlign.center,
                           ),
 
-                          SizedBox(height: 16),
+                          SizedBox(height: 20),
 
                           // Name Field
                           _buildTextField(
@@ -342,7 +330,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                             validator: (value) => value?.isEmpty ?? true ? 'Please enter your name' : null,
                           ),
 
-                          SizedBox(height: 8),
+                          SizedBox(height: 12),
 
                           // Email Field
                           _buildTextField(
@@ -357,7 +345,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                             },
                           ),
 
-                          SizedBox(height: 8),
+                          SizedBox(height: 12),
 
                           // EV Registration Field
                           _buildTextField(
@@ -367,12 +355,12 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                             validator: (value) => value?.isEmpty ?? true ? 'Please enter vehicle registration' : null,
                           ),
 
-                          SizedBox(height: 8),
+                          SizedBox(height: 12),
 
                           // Role Selector
                           _buildRoleSelector(),
 
-                          SizedBox(height: 8),
+                          SizedBox(height: 12),
 
                           // Password Field
                           _buildTextField(
@@ -390,7 +378,7 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                             validator: (value) => value?.isEmpty ?? true ? 'Please enter a password' : null,
                           ),
 
-                          SizedBox(height: 8),
+                          SizedBox(height: 12),
 
                           // Confirm Password Field
                           _buildTextField(
@@ -412,19 +400,19 @@ class _SignupScreenState extends State<SignupScreen> with TickerProviderStateMix
                             },
                           ),
 
-                          SizedBox(height: 16),
+                          SizedBox(height: 20),
 
                           // Register Button
                           _buildRegisterButton(),
-
-                          SizedBox(height: 16),
                         ],
                       ),
                     ),
                   ),
-                ),
+
+                  SizedBox(height: 40), // Space at bottom to ensure floating appearance
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),
