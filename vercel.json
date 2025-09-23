@@ -1,7 +1,7 @@
 {
   "buildCommand": "flutter build web --web-renderer html --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY",
   "outputDirectory": "build/web",
-  "installCommand": "git clone https://github.com/flutter/flutter.git -b stable --depth 1 && export PATH=\"$PATH:`pwd`/flutter/bin\" && flutter doctor && flutter pub get",
+  "installCommand": "curl -fsSL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.3-stable.tar.xz | tar -xJ -C /tmp && export PATH=\"/tmp/flutter/bin:$PATH\" && flutter config --no-analytics && flutter doctor && flutter pub get",
   "routes": [
     {
       "src": "/(.*)",
