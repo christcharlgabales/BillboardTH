@@ -1,7 +1,7 @@
 {
-  "buildCommand": "export PATH=\"$PWD/flutter/bin:$PATH\" && flutter build web --release --dart-define=SUPABASE_URL=\"$SUPABASE_URL\" --dart-define=SUPABASE_ANON_KEY=\"$SUPABASE_ANON_KEY\"",
+  "buildCommand": "bash build.sh",
   "outputDirectory": "build/web",
-  "installCommand": "wget -q https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.24.3-stable.tar.xz -O flutter.tar.xz && tar -xf flutter.tar.xz && rm flutter.tar.xz && export PATH=\"$PWD/flutter/bin:$PATH\" && flutter config --no-analytics && flutter doctor && flutter pub get",
+  "installCommand": "chmod +x build.sh",
   "routes": [
     {
       "src": "/(.*)",
