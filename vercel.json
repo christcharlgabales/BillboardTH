@@ -1,4 +1,8 @@
 {
+  "buildCommand": "chmod +x build.sh && ./build.sh",
+  "outputDirectory": "build/web",
+  "installCommand": "echo 'Using custom build script'",
+  "framework": null,
   "routes": [
     {
       "src": "/(.*)",
