@@ -1,5 +1,5 @@
 {
-  "buildCommand": "flutter build web --web-renderer html",
+  "buildCommand": "flutter build web --web-renderer html --dart-define=SUPABASE_URL=$SUPABASE_URL --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY",
   "outputDirectory": "build/web",
   "installCommand": "git clone https://github.com/flutter/flutter.git -b stable --depth 1 && export PATH=\"$PATH:`pwd`/flutter/bin\" && flutter doctor && flutter pub get",
   "routes": [
