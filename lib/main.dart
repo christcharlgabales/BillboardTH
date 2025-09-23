@@ -1,7 +1,6 @@
 //main.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart'; // Add this import for kIsWeb
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -16,29 +15,10 @@ import 'admin/dashboard.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
-  String supabaseUrl;
-  String supabaseAnonKey;
-  
-  if (kIsWeb) {
-    // For web builds, use compile-time environment variables
-    supabaseUrl = const String.fromEnvironment('SUPABASE_URL');
-    supabaseAnonKey = const String.fromEnvironment('SUPABASE_ANON_KEY');
-    
-    // Add validation for web builds
-    if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
-      throw Exception('SUPABASE_URL and SUPABASE_ANON_KEY must be provided for web builds');
-    }
-  } else {
-    // For mobile builds, use dotenv
-    await dotenv.load(fileName: ".env");
-    supabaseUrl = dotenv.env['SUPABASE_URL']!;
-    supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY']!;
-  }
-  
+  await dotenv.load(fileName: ".env");
   await Supabase.initialize(
-    url: supabaseUrl,
-    anonKey: supabaseAnonKey,
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
   runApp(const MyApp());
 }
