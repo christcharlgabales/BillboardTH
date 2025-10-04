@@ -13,8 +13,8 @@ class LocationService extends ChangeNotifier {
   // Performance optimization variables
   Position? _lastNotifiedPosition;
   DateTime? _lastUpdateTime;
-  static const double _minimumDistanceForUpdate = 10.0; // 10 meters
-  static const Duration _minimumTimeForUpdate = Duration(seconds: 2);
+  static const double _minimumDistanceForUpdate = 0; // 10 meters
+  static const Duration _minimumTimeForUpdate = Duration(milliseconds: 100);
   
   Position? get currentPosition => _currentPosition;
 
@@ -119,8 +119,8 @@ class LocationService extends ChangeNotifier {
     
     _positionStream = Geolocator.getPositionStream(
       locationSettings: LocationSettings(
-        accuracy: LocationAccuracy.medium, // Changed from high to medium for better battery life
-        distanceFilter: 10, // Increased from 8 to 10 meters
+        accuracy: LocationAccuracy.best, // Changed from high to medium for better battery life
+        distanceFilter: 0, // Increased from 8 to 10 meters
         timeLimit: Duration(seconds: 20), // Increased timeout
       ),
     ).listen(

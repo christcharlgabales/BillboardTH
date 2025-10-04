@@ -40,8 +40,8 @@ class _MainScreenState extends State<MainScreen> {
   static const Duration _markerUpdateDelay = Duration(milliseconds: 300);
   
   // Billboard alert constants
-  static const double BILLBOARD_RADIUS = 500.0; 
-
+  static const double BILLBOARD_RADIUS = 30.0; 
+  
   @override
   void initState() {
     super.initState();
@@ -120,34 +120,45 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _checkBillboardProximity(Position userPosition, SupabaseService supabaseService) {
-    if (!mounted) return;
-    
-    final evRegistration = supabaseService.getCurrentEvRegistration();
-    
-    // Don't check proximity if no valid registration
-    if (evRegistration == 'UNKNOWN_VEHICLE') {
-      print('⚠️ Skipping proximity check - no valid EV registration');
-      return;
-    }
-    
-    for (Billboard billboard in supabaseService.billboards) {
-      double distance = Geolocator.distanceBetween(
-        userPosition.latitude, 
-        userPosition.longitude,
-        billboard.latitude, 
-        billboard.longitude
-      );
+  if (!mounted) return;
+  
+  final evRegistration = supabaseService.getCurrentEvRegistration();
+  
+  // Don't check proximity if no valid registration
+  if (evRegistration == 'UNKNOWN_VEHICLE') {
+    print('⚠️ Skipping proximity check - no valid EV registration');
+    return;
+  }
+  
+  print('📍 Checking proximity from: ${userPosition.latitude}, ${userPosition.longitude}');
+  print('📍 GPS Accuracy: ${userPosition.accuracy} meters');
+  
+  for (Billboard billboard in supabaseService.billboards) {
+    double distance = Geolocator.distanceBetween(
+      userPosition.latitude, 
+      userPosition.longitude,
+      billboard.latitude, 
+      billboard.longitude
+    );
 
-      bool isWithinRadius = distance <= BILLBOARD_RADIUS;
-      bool wasActive = _activeBillboards.contains(billboard.billboardId);
+    bool isWithinRadius = distance <= BILLBOARD_RADIUS;
+    bool wasActive = _activeBillboards.contains(billboard.billboardId);
 
-      if (isWithinRadius && !wasActive) {
-        _activateBillboard(billboard, supabaseService, evRegistration);
-      } else if (!isWithinRadius && wasActive) {
-        _deactivateBillboard(billboard, supabaseService, evRegistration);
-      }
+    // DEBUG: Print distance for ALL billboards
+    print('🎯 Billboard ${billboard.billboardNumber}: ${distance.toStringAsFixed(2)}m away (threshold: $BILLBOARD_RADIUS m) - Within: $isWithinRadius, WasActive: $wasActive');
+
+    if (isWithinRadius && !wasActive) {
+      print('🚨 ATTEMPTING TO ACTIVATE Billboard ${billboard.billboardNumber}');
+      _activateBillboard(billboard, supabaseService, evRegistration);
+    } else if (!isWithinRadius && wasActive) {
+      print('🔴 ATTEMPTING TO DEACTIVATE Billboard ${billboard.billboardNumber}');
+      _deactivateBillboard(billboard, supabaseService, evRegistration);
     }
   }
+  
+  print('✅ Active billboards: $_activeBillboards');
+  print('---');
+}
 
   void _activateBillboard(Billboard billboard, SupabaseService supabaseService, String evRegistration) async {
     if (!mounted) return;
