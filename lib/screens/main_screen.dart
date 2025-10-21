@@ -36,12 +36,12 @@ class _MainScreenState extends State<MainScreen> {
   Position? _lastCameraPosition;
   List<Billboard>? _lastBillboardsState;
   // static const double _cameraUpdateThreshold = 0.001; // ~100m threshold
-  static const Duration _cameraUpdateDelay = Duration(milliseconds: 500);
-  static const Duration _markerUpdateDelay = Duration(milliseconds: 300);
+  static const Duration _cameraUpdateDelay = Duration(milliseconds: 100);
+  static const Duration _markerUpdateDelay = Duration(milliseconds: 100);
   
   // Billboard alert constants
-  static const double BILLBOARD_RADIUS = 30.0; 
-  
+  static const double BILLBOARD_RADIUS = 15.0; 
+
   @override
   void initState() {
     super.initState();
