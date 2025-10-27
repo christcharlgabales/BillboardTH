@@ -1,7 +1,7 @@
 // lib/admin/dashboard.dart
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+// import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -20,16 +20,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
   int _selectedIndex = 0;
   GoogleMapController? _mapController;
   Set<Marker> _markers = {};
-
+  
   // Dashboard statistics
   int _activeUsers = 0;
   int _totalBillboards = 0;
   int _alertsTriggeredToday = 0;
-
+  
   // Current user info
   String _currentUserName = "Admin User";
   String _currentUserEmail = "";
-
+  
   @override
   void initState() {
     super.initState();
@@ -37,16 +37,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Future<void> _loadDashboardData() async {
-    final supabaseService =
-        Provider.of<SupabaseService>(context, listen: false);
-
+    final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+    
     try {
       // Load billboards
       await supabaseService.loadBillboards();
-
+      
       // Get statistics
       await _loadStatistics();
-
+      
       // Load current user info
       final currentUser = supabaseService.currentUser;
       if (currentUser != null) {
@@ -64,7 +63,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 .select('name, email')
                 .eq('email', authUser.email!)
                 .single();
-
+            
             setState(() {
               _currentUserName = userResponse['name'] ?? "Admin User";
               _currentUserEmail = userResponse['email'] ?? authUser.email ?? "";
@@ -78,32 +77,32 @@ class _AdminDashboardState extends State<AdminDashboard> {
           }
         }
       }
-
+      
       // Update markers
       _updateMarkers(supabaseService.billboards);
+      
     } catch (e) {
       print('Error loading dashboard data: $e');
     }
   }
 
   Future<void> _loadStatistics() async {
-    final supabaseService =
-        Provider.of<SupabaseService>(context, listen: false);
-
+    final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+    
     try {
       // Get active users count
       final usersResponse = await supabaseService.client
-          .from('users')
-          .select('count')
-          .eq('status', 'active')
-          .count();
-
+    .from('users')
+    .select('count')
+    .eq('status', 'active')
+    .count();
+      
       // Get total billboards count
       final billboardsResponse = await supabaseService.client
           .from('billboard')
           .select('count')
           .count();
-
+      
       // Get alerts triggered today
       final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final alertsResponse = await supabaseService.client
@@ -111,12 +110,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
           .select('count')
           .eq('date', today)
           .count();
-
+      
       setState(() {
         _activeUsers = usersResponse.count;
         _totalBillboards = billboardsResponse.count;
         _alertsTriggeredToday = alertsResponse.count;
       });
+      
     } catch (e) {
       print('Error loading statistics: $e');
       setState(() {
@@ -130,12 +130,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
   String _getWelcomeMessage() {
     // Use the full name from the users table
     String displayName = _currentUserName;
-
+    
     // Just ensure it's not empty and provide fallback
     if (displayName.isEmpty || displayName == "Admin User") {
       return 'Welcome back, Admin!';
     }
-
+    
     return 'Welcome back, $displayName!';
   }
 
@@ -226,57 +226,55 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Future<void> _performLogout() async {
-    final supabaseService =
-        Provider.of<SupabaseService>(context, listen: false);
-
-    try {
-      // Show loading indicator
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (BuildContext context) {
-          return Dialog(
-            backgroundColor: Colors.transparent,
-            child: Container(
-              padding: EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 20,
-                    offset: Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(
-                    valueColor:
-                        AlwaysStoppedAnimation<Color>(Color(0xFF8B4B3B)),
-                    strokeWidth: 3,
-                  ),
-                  SizedBox(height: 20),
-                  Text(
-                    'Logging out...',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey[700],
-                    ),
-                  ),
-                ],
-              ),
+  final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+  
+  try {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 20,
+                  offset: Offset(0, 10),
+                ),
+              ],
             ),
-          );
-        },
-      );
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8B4B3B)),
+                  strokeWidth: 3,
+                ),
+                SizedBox(height: 20),
+                Text(
+                  'Logging out...',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[700],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
 
       // Perform logout using Supabase auth directly
       await supabaseService.client.auth.signOut();
-
+      
       // Navigate to login screen
       if (mounted) {
         Navigator.of(context).pop(); // Close loading dialog
@@ -290,7 +288,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       // Close loading dialog
       if (mounted) {
         Navigator.of(context).pop();
-
+        
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -318,14 +316,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
           markerId: MarkerId(billboard.billboardId.toString()),
           position: LatLng(billboard.latitude, billboard.longitude),
           icon: BitmapDescriptor.defaultMarkerWithHue(
-            billboard.isActivated
-                ? BitmapDescriptor.hueGreen
-                : BitmapDescriptor.hueRed,
+            billboard.isActivated ? BitmapDescriptor.hueGreen : BitmapDescriptor.hueRed,
           ),
           infoWindow: InfoWindow(
             title: 'Billboard ${billboard.billboardNumber}',
-            snippet:
-                '${billboard.location}\n${billboard.isActivated ? "ACTIVE" : "INACTIVE"}',
+            snippet: '${billboard.location}\n${billboard.isActivated ? "ACTIVE" : "INACTIVE"}',
           ),
         );
       }).toSet();
@@ -338,133 +333,127 @@ class _AdminDashboardState extends State<AdminDashboard> {
     });
   }
 
-  Widget _buildSideNavigation() {
-    return Container(
-      width: 250,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            spreadRadius: 1,
+ Widget _buildSideNavigation() {
+  return Container(
+    width: 250,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black12,
+          blurRadius: 10,
+          spreadRadius: 1,
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        // Header
+        Container(
+          height: 100,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Color(0xFF8B4B3B),
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            height: 100,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Color(0xFF8B4B3B),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // ----------------------------------------------------
-                // 🛑 FIX APPLIED HERE: Replaced Icon with Image.asset
-                // ----------------------------------------------------
-                SvgPicture.asset(
-                  'assets/icon.svg',
-                  height: 40,
-                  width: 40,
-                  // Use colorFilter to set the icon color to white as per your original design
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/icon.jpg', 
+                height: 40,        
+                width: 40,        
+                fit: BoxFit.cover, 
+              ),
+              SizedBox(height: 8),
+              Text(
+                'ALERT TO DIVERT',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
-                // ----------------------------------------------------
-                SizedBox(height: 8),
-                Text(
-                  'ALERT TO DIVERT',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+              ),
+            ],
+          ),
+        ),
+        
+        // Navigation Items
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            children: [
+              _buildNavItem(Icons.dashboard, 'Dashboard', 0),
+              _buildNavItem(Icons.people, 'Users', 1),
+              _buildNavItem(Icons.display_settings, 'Billboard', 2),
+              _buildNavItem(Icons.list_alt, 'Logs', 3),
+            ],
+          ),
+        ),
+        
+        // User Profile Section
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _showLogoutDialog,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              margin: EdgeInsets.all(12),
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Color(0xFF8B4B3B),
+                    child: Icon(Icons.person, color: Colors.white, size: 20),
                   ),
-                ),
-              ],
-            ),
-          ),
-
-          // Navigation Items
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              children: [
-                _buildNavItem(Icons.dashboard, 'Dashboard', 0),
-                _buildNavItem(Icons.people, 'Users', 1),
-                _buildNavItem(Icons.display_settings, 'Billboard', 2),
-                _buildNavItem(Icons.list_alt, 'Logs', 3),
-              ],
-            ),
-          ),
-
-          // User Profile Section
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _showLogoutDialog,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                margin: EdgeInsets.all(12),
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[200]!),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: Color(0xFF8B4B3B),
-                      child: Icon(Icons.person, color: Colors.white, size: 20),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _currentUserName,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Colors.black87,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _currentUserName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.black87,
                           ),
-                          SizedBox(height: 2),
-                          Text(
-                            _currentUserEmail.isEmpty
-                                ? 'Loading...'
-                                : _currentUserEmail,
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          _currentUserEmail.isEmpty ? 'Loading...' : _currentUserEmail,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
                           ),
-                        ],
-                      ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                    Icon(
-                      Icons.logout,
-                      color: Colors.grey[500],
-                      size: 18,
-                    ),
-                  ],
-                ),
+                  ),
+                  Icon(
+                    Icons.logout,
+                    color: Colors.grey[500],
+                    size: 18,
+                  ),
+                ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildNavItem(IconData icon, String title, int index) {
     bool isSelected = _selectedIndex == index;
-
+    
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       decoration: BoxDecoration(
@@ -518,6 +507,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             boxShadow: [
               BoxShadow(
                 color: Color.fromRGBO(0, 0, 0, 0.05),
+
                 blurRadius: 5,
                 spreadRadius: 1,
               ),
@@ -544,7 +534,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ],
           ),
         ),
-
+        
         // Content
         Expanded(
           child: Container(
@@ -577,8 +567,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                               _updateMarkers(supabaseService.billboards);
                             },
                             initialCameraPosition: CameraPosition(
-                              target: LatLng(
-                                  8.9475, 125.5406), // Butuan City coordinates
+                              target: LatLng(8.9475, 125.5406), // Butuan City coordinates
                               zoom: 13,
                             ),
                             markers: _markers,
@@ -591,9 +580,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
                     ),
                   ),
                 ),
-
+                
                 SizedBox(height: 30),
-
+                
                 // Statistics Cards
                 Row(
                   children: [
@@ -634,8 +623,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, Color color, IconData icon,
-      {bool showAlert = false}) {
+ Widget _buildStatCard(String title, String value, Color color, IconData icon, {bool showAlert = false}) {
     return Container(
       height: 120,
       padding: EdgeInsets.all(16), // Reduced padding from 20 to 16
@@ -671,10 +659,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ],
             ],
           ),
-          Expanded(
-            // Changed from Spacer() to Expanded
-            child: Center(
-              // Center the content vertically
+          Expanded( // Changed from Spacer() to Expanded
+            child: Center( // Center the content vertically
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -707,6 +693,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       ),
     );
   }
+  
 
   @override
   Widget build(BuildContext context) {
