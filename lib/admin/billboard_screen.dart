@@ -5,6 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:intl/intl.dart';
 import 'dart:async';
+// import 'dart:io';
+import 'dart:typed_data';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/supabase_service.dart';
 import '../models/billboard.dart';
 
@@ -22,6 +26,7 @@ class _BillboardScreenState extends State<BillboardScreen> {
   int? _selectedBillboardId;
   Timer? _refreshTimer;
   StreamSubscription? _alertsSubscription;
+  final ImagePicker _imagePicker = ImagePicker();
 
   // Color theme
   static const Color primaryBrown = Color(0xFF8B4B3B);
@@ -44,12 +49,9 @@ class _BillboardScreenState extends State<BillboardScreen> {
   }
 
   void _startRealTimeSync() {
-    // Set up periodic refresh every 30 seconds
     _refreshTimer = Timer.periodic(Duration(seconds: 30), (timer) {
       _refreshBillboardStatus();
     });
-
-    // Set up real-time subscription to alerts table
     _setupRealtimeSubscription();
   }
 
@@ -67,7 +69,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
       print('Real-time subscription established for alerts table');
     } catch (e) {
       print('Failed to set up real-time subscription: $e');
-      // Fall back to periodic refresh only
     }
   }
 
@@ -79,7 +80,7 @@ class _BillboardScreenState extends State<BillboardScreen> {
     try {
       final supabaseService = Provider.of<SupabaseService>(context, listen: false);
       await supabaseService.loadBillboards();
-      await _refreshBillboardStatus(); // Load real status from database
+      await _refreshBillboardStatus();
       _updateMarkers(supabaseService.billboards);
       
       setState(() {
@@ -103,7 +104,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
     try {
       final supabaseService = Provider.of<SupabaseService>(context, listen: false);
       
-      // Get all active alerts from database
       final activeAlerts = await supabaseService.client
           .from('alerts')
           .select('billboard_id');
@@ -114,7 +114,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
       
       print('Active billboard IDs from database: $activeBillboardIds');
       
-      // Update local billboard status based on database
       bool hasChanges = false;
       for (var billboard in supabaseService.billboards) {
         bool shouldBeActive = activeBillboardIds.contains(billboard.billboardId);
@@ -134,36 +133,33 @@ class _BillboardScreenState extends State<BillboardScreen> {
   }
 
   void _updateMarkers(List<Billboard> billboards) {
-  // Debug print
-  for (var billboard in billboards) {
-    print('Billboard ${billboard.billboardNumber}: isActivated = ${billboard.isActivated}');
+    for (var billboard in billboards) {
+      print('Billboard ${billboard.billboardNumber}: isActivated = ${billboard.isActivated}');
+    }
+    
+    setState(() {
+      _markers = billboards.map((billboard) {
+        final color = _selectedBillboardId == billboard.billboardId 
+            ? BitmapDescriptor.hueBlue
+            : billboard.isActivated 
+                ? BitmapDescriptor.hueGreen 
+                : BitmapDescriptor.hueRed;
+        
+        print('Billboard ${billboard.billboardNumber} color: $color');
+        
+        return Marker(
+          markerId: MarkerId(billboard.billboardId.toString()),
+          position: LatLng(billboard.latitude, billboard.longitude),
+          onTap: () => _selectBillboard(billboard.billboardId),
+          icon: BitmapDescriptor.defaultMarkerWithHue(color),
+          infoWindow: InfoWindow(
+            title: 'Billboard ${billboard.billboardNumber}',
+            snippet: '${billboard.location}\n${billboard.isActivated ? "ACTIVE" : "INACTIVE"}',
+          ),
+        );
+      }).toSet();
+    });
   }
-  
-  setState(() {
-    _markers = billboards.map((billboard) {
-      final color = _selectedBillboardId == billboard.billboardId 
-          ? BitmapDescriptor.hueBlue
-          : billboard.isActivated 
-              ? BitmapDescriptor.hueGreen 
-              : BitmapDescriptor.hueRed;
-      
-      print('Billboard ${billboard.billboardNumber} color: $color');
-      
-      return Marker(
-        markerId: MarkerId(billboard.billboardId.toString()),
-        position: LatLng(billboard.latitude, billboard.longitude),
-        onTap: () => _selectBillboard(billboard.billboardId),
-        icon: BitmapDescriptor.defaultMarkerWithHue(color),
-        infoWindow: InfoWindow(
-          title: 'Billboard ${billboard.billboardNumber}',
-          snippet: '${billboard.location}\n${billboard.isActivated ? "ACTIVE" : "INACTIVE"}',
-        ),
-      );
-    }).toSet();
-  });
-}
-
-
 
   void _selectBillboard(int billboardId) {
     setState(() {
@@ -173,7 +169,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
     final supabaseService = Provider.of<SupabaseService>(context, listen: false);
     _updateMarkers(supabaseService.billboards);
     
-    // Center map on selected billboard
     if (_selectedBillboardId != null) {
       final billboard = supabaseService.billboards
           .firstWhere((b) => b.billboardId == _selectedBillboardId);
@@ -192,14 +187,12 @@ class _BillboardScreenState extends State<BillboardScreen> {
     final supabaseService = Provider.of<SupabaseService>(context, listen: false);
     List<Billboard> filtered = supabaseService.billboards;
 
-    // Apply status filter
     if (_selectedFilter == 'Active') {
       filtered = filtered.where((billboard) => billboard.isActivated).toList();
     } else if (_selectedFilter == 'Inactive') {
       filtered = filtered.where((billboard) => !billboard.isActivated).toList();
     }
 
-    // Apply search filter
     if (_searchQuery.isNotEmpty) {
       filtered = filtered.where((billboard) =>
           billboard.billboardNumber.toLowerCase().contains(_searchQuery.toLowerCase()) ||
@@ -209,66 +202,229 @@ class _BillboardScreenState extends State<BillboardScreen> {
     return filtered;
   }
 
-  void _showAddBillboardDialog() {
-    final TextEditingController billboardNumberController = TextEditingController();
-    final TextEditingController locationController = TextEditingController();
-    final TextEditingController latitudeController = TextEditingController();
-    final TextEditingController longitudeController = TextEditingController();
-    final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-    bool isLoading = false;
+  Future<String?> _uploadImage(XFile imageFile) async {
+    try {
+      final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+      final bytes = await imageFile.readAsBytes();
+      final fileExt = imageFile.path.split('.').last;
+      final fileName = '${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      final filePath = 'billboard_images/$fileName';
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+      await supabaseService.client.storage
+          .from('billboards')
+          .uploadBinary(filePath, bytes);
+
+      final imageUrl = supabaseService.client.storage
+          .from('billboards')
+          .getPublicUrl(filePath);
+
+      return imageUrl;
+    } catch (e) {
+      print('Error uploading image: $e');
+      return null;
+    }
+  }
+
+  void _showAddBillboardDialog() {
+  final TextEditingController billboardNumberController = TextEditingController();
+  final TextEditingController locationController = TextEditingController();
+  final TextEditingController latitudeController = TextEditingController();
+  final TextEditingController longitudeController = TextEditingController();
+  final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+  bool isLoading = false;
+  XFile? selectedImage;
+  String? imagePreviewUrl;
+
+  showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (BuildContext context) {
+      return StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Container(
+              padding: EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Colors.grey[300]!, width: 1),
+                ),
               ),
-              title: Container(
-                padding: EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey[300]!, width: 1),
+              child: Row(
+                children: [
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: primaryBrown.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.add_location_alt,
+                      color: primaryBrown,
+                      size: 24,
+                    ),
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: primaryBrown.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        Icons.add_location_alt,
-                        color: primaryBrown,
-                        size: 24,
-                      ),
+                  SizedBox(width: 12),
+                  Text(
+                    'Add New Billboard',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: darkBrown,
                     ),
-                    SizedBox(width: 12),
-                    Text(
-                      'Add New Billboard',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: darkBrown,
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              content: Container(
-                width: 450,
+            ),
+            content: Container(
+              width: 450,
+              child: SingleChildScrollView(
                 child: Form(
                   key: formKey,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Billboard Number Field
+                      // Image Upload Section
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey[300]!),
+                        ),
+                        child: Column(
+                          children: [
+                            if (selectedImage == null)
+                              Column(
+                                children: [
+                                  Icon(
+                                    Icons.add_photo_alternate,
+                                    size: 48,
+                                    color: Colors.grey[400],
+                                  ),
+                                  SizedBox(height: 8),
+                                  Text(
+                                    'No image selected',
+                                    style: TextStyle(color: Colors.grey[600]),
+                                  ),
+                                  SizedBox(height: 12),
+                                  ElevatedButton.icon(
+                                    onPressed: isLoading ? null : () async {
+                                      final XFile? image = await _imagePicker.pickImage(
+                                        source: ImageSource.gallery,
+                                        maxWidth: 1024,
+                                        maxHeight: 1024,
+                                        imageQuality: 85,
+                                      );
+                                      if (image != null) {
+                                        setDialogState(() {
+                                          selectedImage = image;
+                                        });
+                                      }
+                                    },
+                                    icon: Icon(Icons.upload, size: 18),
+                                    label: Text('Upload Image'),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: primaryBrown,
+                                      foregroundColor: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            else
+                              FutureBuilder<Uint8List>(
+                                future: selectedImage!.readAsBytes(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                    return Container(
+                                      height: 150,
+                                      child: Center(
+                                        child: CircularProgressIndicator(color: primaryBrown),
+                                      ),
+                                    );
+                                  }
+                                  
+                                  if (snapshot.hasError || !snapshot.hasData) {
+                                    return Container(
+                                      height: 150,
+                                      color: Colors.grey[200],
+                                      child: Center(
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(Icons.error_outline, size: 32, color: Colors.red),
+                                            SizedBox(height: 8),
+                                            Text('Error loading image', style: TextStyle(color: Colors.red)),
+                                          ],
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  
+                                  return Column(
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: Image.memory(
+                                          snapshot.data!,
+                                          height: 150,
+                                          width: double.infinity,
+                                          fit: BoxFit.cover,
+                                        ),
+                                      ),
+                                      SizedBox(height: 8),
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          TextButton.icon(
+                                            onPressed: isLoading ? null : () async {
+                                              final XFile? image = await _imagePicker.pickImage(
+                                                source: ImageSource.gallery,
+                                                maxWidth: 1024,
+                                                maxHeight: 1024,
+                                                imageQuality: 85,
+                                              );
+                                              if (image != null) {
+                                                setDialogState(() {
+                                                  selectedImage = image;
+                                                });
+                                              }
+                                            },
+                                            icon: Icon(Icons.edit, size: 16),
+                                            label: Text('Change'),
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: primaryBrown,
+                                            ),
+                                          ),
+                                          SizedBox(width: 8),
+                                          TextButton.icon(
+                                            onPressed: isLoading ? null : () {
+                                              setDialogState(() {
+                                                selectedImage = null;
+                                              });
+                                            },
+                                            icon: Icon(Icons.delete, size: 16),
+                                            label: Text('Remove'),
+                                            style: TextButton.styleFrom(
+                                              foregroundColor: Colors.red,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  );
+                                },
+                              ),
+                          ],
+                        ),
+                      ),
+                      
+                      SizedBox(height: 20),
+                      
                       _buildFormField(
                         controller: billboardNumberController,
                         label: 'Billboard Number',
@@ -284,7 +440,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
                       
                       SizedBox(height: 20),
                       
-                      // Location Field
                       _buildFormField(
                         controller: locationController,
                         label: 'Location',
@@ -300,7 +455,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
                       
                       SizedBox(height: 20),
                       
-                      // Coordinates Row
                       Row(
                         children: [
                           Expanded(
@@ -347,7 +501,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
                       
                       SizedBox(height: 24),
                       
-                      // Help Text
                       Container(
                         padding: EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -379,112 +532,114 @@ class _BillboardScreenState extends State<BillboardScreen> {
                   ),
                 ),
               ),
-              actions: [
-                // Cancel Button
-                TextButton(
-                  onPressed: isLoading ? null : () => Navigator.of(context).pop(),
-                  style: TextButton.styleFrom(
-                    foregroundColor: Colors.grey[600],
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  ),
-                  child: Text('Cancel'),
+            ),
+            actions: [
+              TextButton(
+                onPressed: isLoading ? null : () => Navigator.of(context).pop(),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.grey[600],
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 ),
-                
-                // Add Button
-                ElevatedButton(
-                  onPressed: isLoading ? null : () async {
-                    if (formKey.currentState!.validate()) {
+                child: Text('Cancel'),
+              ),
+              
+              ElevatedButton(
+                onPressed: isLoading ? null : () async {
+                  if (formKey.currentState!.validate()) {
+                    setDialogState(() {
+                      isLoading = true;
+                    });
+                    
+                    try {
+                      final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+                      
+                      String? imageUrl;
+                      if (selectedImage != null) {
+                        imageUrl = await _uploadImage(selectedImage!);
+                      }
+                      
+                      final billboardData = {
+                        'billboard_number': billboardNumberController.text.trim(),
+                        'location': locationController.text.trim(),
+                        'latitude': double.parse(latitudeController.text.trim()),
+                        'longitude': double.parse(longitudeController.text.trim()),
+                        'image_url': imageUrl,
+                        'created_at': DateTime.now().toIso8601String(),
+                      };
+                      
+                      final response = await supabaseService.client
+                          .from('billboard')
+                          .insert(billboardData)
+                          .select()
+                          .single();
+                      
+                      await _loadBillboards();
+                      
+                      Navigator.of(context).pop();
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Billboard added successfully!'),
+                          backgroundColor: primaryBrown,
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                      
+                    } catch (e) {
                       setDialogState(() {
-                        isLoading = true;
+                        isLoading = false;
                       });
                       
-                      try {
-                        final supabaseService = Provider.of<SupabaseService>(context, listen: false);
-                        
-                        // Create new billboard data
-                        final billboardData = {
-                          'billboard_number': billboardNumberController.text.trim(),
-                          'location': locationController.text.trim(),
-                          'latitude': double.parse(latitudeController.text.trim()),
-                          'longitude': double.parse(longitudeController.text.trim()),
-                          'created_at': DateTime.now().toIso8601String(),
-                        };
-                        
-                        // Insert to database
-                        final response = await supabaseService.client
-                            .from('billboard')
-                            .insert(billboardData)
-                            .select()
-                            .single();
-                        
-                        // Reload billboards to reflect changes
-                        await _loadBillboards();
-                        
-                        Navigator.of(context).pop();
-                        
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Billboard added successfully!'),
-                            backgroundColor: primaryBrown,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                        
-                      } catch (e) {
-                        setDialogState(() {
-                          isLoading = false;
-                        });
-                        
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Error adding billboard: $e'),
-                            backgroundColor: Colors.red,
-                            behavior: SnackBarBehavior.floating,
-                          ),
-                        );
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryBrown,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: isLoading
-                      ? Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              ),
-                            ),
-                            SizedBox(width: 8),
-                            Text('Adding...'),
-                          ],
-                        )
-                      : Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.add, size: 18),
-                            SizedBox(width: 4),
-                            Text('Add Billboard'),
-                          ],
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error adding billboard: $e'),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
                         ),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryBrown,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
+                child: isLoading
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text('Adding...'),
+                        ],
+                      )
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.add, size: 18),
+                          SizedBox(width: 4),
+                          Text('Add Billboard'),
+                        ],
+                      ),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+}
 
   Widget _buildFormField({
     required TextEditingController controller,
@@ -534,7 +689,23 @@ class _BillboardScreenState extends State<BillboardScreen> {
     );
   }
 
-  void _showBillboardDetails(Billboard billboard) {
+  void _showBillboardDetails(Billboard billboard) async {
+    // Fetch the image URL from database
+    final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+    String? imageUrl;
+    
+    try {
+      final response = await supabaseService.client
+          .from('billboard')
+          .select('image_url')
+          .eq('billboardid', billboard.billboardId)
+          .single();
+      
+      imageUrl = response['image_url'] as String?;
+    } catch (e) {
+      print('Error fetching billboard image: $e');
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -578,18 +749,88 @@ class _BillboardScreenState extends State<BillboardScreen> {
           ),
           content: Container(
             width: 400,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildDetailRow('Billboard ID', billboard.billboardId.toString()),
-                _buildDetailRow('Billboard Number', billboard.billboardNumber),
-                _buildDetailRow('Location', billboard.location),
-                _buildDetailRow('Latitude', billboard.latitude.toStringAsFixed(6)),
-                _buildDetailRow('Longitude', billboard.longitude.toStringAsFixed(6)),
-                _buildDetailRow('Status', billboard.isActivated ? 'Active' : 'Inactive'),
-                _buildDetailRow('Created At', DateFormat('MMM dd, yyyy - HH:mm').format(billboard.createdAt)),
-              ],
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Image Section
+                  if (imageUrl != null && imageUrl.isNotEmpty)
+                    Column(
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            imageUrl,
+                            height: 200,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                height: 200,
+                                color: Colors.grey[200],
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.broken_image, size: 48, color: Colors.grey[400]),
+                                    SizedBox(height: 8),
+                                    Text('Failed to load image', style: TextStyle(color: Colors.grey[600])),
+                                  ],
+                                ),
+                              );
+                            },
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Container(
+                                height: 200,
+                                child: Center(
+                                  child: CircularProgressIndicator(
+                                    value: loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                        : null,
+                                    color: primaryBrown,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                      ],
+                    )
+                  else
+                    Column(
+                      children: [
+                        Container(
+                          height: 150,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[200],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.image_not_supported, size: 48, color: Colors.grey[400]),
+                                SizedBox(height: 8),
+                                Text('No image available', style: TextStyle(color: Colors.grey[600])),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                      ],
+                    ),
+                  
+                  _buildDetailRow('Billboard ID', billboard.billboardId.toString()),
+                  _buildDetailRow('Billboard Number', billboard.billboardNumber),
+                  _buildDetailRow('Location', billboard.location),
+                  _buildDetailRow('Latitude', billboard.latitude.toStringAsFixed(6)),
+                  _buildDetailRow('Longitude', billboard.longitude.toStringAsFixed(6)),
+                  _buildDetailRow('Status', billboard.isActivated ? 'Active' : 'Inactive'),
+                  _buildDetailRow('Created At', DateFormat('MMM dd, yyyy - HH:mm').format(billboard.createdAt)),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -640,7 +881,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
       final newStatus = !billboard.isActivated;
       final evRegistration = supabaseService.getCurrentEvRegistration();
       
-      // Use manual activation method from SupabaseService
       final success = await supabaseService.manualActivation(
         billboard.billboardId, 
         evRegistration, 
@@ -648,10 +888,7 @@ class _BillboardScreenState extends State<BillboardScreen> {
       );
       
       if (success) {
-        // Update local state
         supabaseService.updateBillboardStatus(billboard.billboardId, newStatus);
-        
-        // Update markers
         _updateMarkers(supabaseService.billboards);
         
         ScaffoldMessenger.of(context).showSnackBar(
@@ -701,7 +938,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
                 ),
               ),
               Spacer(),
-              // Add Billboard Button
               ElevatedButton.icon(
                 onPressed: _showAddBillboardDialog,
                 icon: Icon(Icons.add, size: 18),
@@ -716,7 +952,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
                 ),
               ),
               SizedBox(width: 16),
-              // Real-time indicator
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
@@ -767,10 +1002,8 @@ class _BillboardScreenState extends State<BillboardScreen> {
           
           SizedBox(height: 20),
           
-          // Search and Filter Row
           Row(
             children: [
-              // Search Bar
               Container(
                 width: 300,
                 height: 40,
@@ -800,7 +1033,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
               
               SizedBox(width: 20),
               
-              // Filter Dropdown
               Container(
                 height: 40,
                 padding: EdgeInsets.symmetric(horizontal: 12),
@@ -833,11 +1065,9 @@ class _BillboardScreenState extends State<BillboardScreen> {
           
           SizedBox(height: 30),
           
-          // Main Content - Split between Map and Table
           Expanded(
             child: Row(
               children: [
-                // Map Section
                 Expanded(
                   flex: 2,
                   child: Container(
@@ -862,14 +1092,14 @@ class _BillboardScreenState extends State<BillboardScreen> {
                               _updateMarkers(supabaseService.billboards);
                             },
                             initialCameraPosition: CameraPosition(
-                              target: LatLng(8.9475, 125.5406), // Butuan City coordinates
+                              target: LatLng(8.9475, 125.5406),
                               zoom: 13,
                             ),
                             markers: _markers,
                             myLocationButtonEnabled: false,
                             zoomControlsEnabled: true,
                             mapToolbarEnabled: false,
-                            onTap: (_) => _selectBillboard(-1), // Deselect on map tap
+                            onTap: (_) => _selectBillboard(-1),
                           );
                         },
                       ),
@@ -879,7 +1109,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
                 
                 SizedBox(width: 30),
                 
-                // Table Section
                 Expanded(
                   flex: 1,
                   child: Container(
@@ -912,7 +1141,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
                               )
                             : Column(
                                 children: [
-                                  // Table Header
                                   Container(
                                     padding: EdgeInsets.all(16),
                                     decoration: BoxDecoration(
@@ -945,7 +1173,6 @@ class _BillboardScreenState extends State<BillboardScreen> {
                                     ),
                                   ),
                                   
-                                  // Table Content
                                   Expanded(
                                     child: ListView.builder(
                                       itemCount: _filteredBillboards.length,
