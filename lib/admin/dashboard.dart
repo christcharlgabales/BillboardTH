@@ -132,7 +132,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     
     // Just ensure it's not empty and provide fallback
     if (displayName.isEmpty || displayName == "Admin User") {
-      return 'Welcome Back Admin!';
+      return 'Welcome back, Admin!';
     }
     
     return 'Welcome back, $displayName!';
