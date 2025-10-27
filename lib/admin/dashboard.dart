@@ -332,118 +332,127 @@ class _AdminDashboardState extends State<AdminDashboard> {
     });
   }
 
-  Widget _buildSideNavigation() {
-    return Container(
-      width: 250,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 10,
-            spreadRadius: 1,
+ Widget _buildSideNavigation() {
+  return Container(
+    width: 250,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black12,
+          blurRadius: 10,
+          spreadRadius: 1,
+        ),
+      ],
+    ),
+    child: Column(
+      children: [
+        // Header
+        Container(
+          height: 100,
+          width: double.infinity,
+          decoration: BoxDecoration(
+            color: Color(0xFF8B4B3B),
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Header
-          Container(
-            height: 100,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Color(0xFF8B4B3B),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.navigation, color: Colors.white, size: 32),
-                SizedBox(height: 8),
-                Text(
-                  'ALERT TO DIVERT',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // ----------------------------------------------------
+              // 🛑 FIX APPLIED HERE: Replaced Icon with Image.asset
+              // ----------------------------------------------------
+              Image.asset(
+                'assets/icon.jpg', // Use your specified image path
+                height: 40,        // Adjusted height to fit the 100px header
+                width: 40,         // Keep width same as height for aspect ratio
+                fit: BoxFit.cover, // Use cover to make sure it fills the area if needed
+              ),
+              // ----------------------------------------------------
+              SizedBox(height: 8),
+              Text(
+                'ALERT TO DIVERT',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+        ),
+        
+        // Navigation Items
+        Expanded(
+          child: ListView(
+            padding: EdgeInsets.symmetric(vertical: 20),
+            children: [
+              _buildNavItem(Icons.dashboard, 'Dashboard', 0),
+              _buildNavItem(Icons.people, 'Users', 1),
+              _buildNavItem(Icons.display_settings, 'Billboard', 2),
+              _buildNavItem(Icons.list_alt, 'Logs', 3),
+            ],
+          ),
+        ),
+        
+        // User Profile Section
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: _showLogoutDialog,
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              margin: EdgeInsets.all(12),
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    backgroundColor: Color(0xFF8B4B3B),
+                    child: Icon(Icons.person, color: Colors.white, size: 20),
                   ),
-                ),
-              ],
-            ),
-          ),
-          
-          // Navigation Items
-          Expanded(
-            child: ListView(
-              padding: EdgeInsets.symmetric(vertical: 20),
-              children: [
-                _buildNavItem(Icons.dashboard, 'Dashboard', 0),
-                _buildNavItem(Icons.people, 'Users', 1),
-                _buildNavItem(Icons.display_settings, 'Billboard', 2),
-                _buildNavItem(Icons.list_alt, 'Logs', 3),
-              ],
-            ),
-          ),
-          
-          // User Profile Section
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _showLogoutDialog,
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                margin: EdgeInsets.all(12),
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey[200]!),
-                ),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      backgroundColor: Color(0xFF8B4B3B),
-                      child: Icon(Icons.person, color: Colors.white, size: 20),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _currentUserName,
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                              color: Colors.black87,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _currentUserName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: Colors.black87,
                           ),
-                          SizedBox(height: 2),
-                          Text(
-                            _currentUserEmail.isEmpty ? 'Loading...' : _currentUserEmail,
-                            style: TextStyle(
-                              color: Colors.grey[600],
-                              fontSize: 12,
-                            ),
-                            overflow: TextOverflow.ellipsis,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          _currentUserEmail.isEmpty ? 'Loading...' : _currentUserEmail,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 12,
                           ),
-                        ],
-                      ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                    Icon(
-                      Icons.logout,
-                      color: Colors.grey[500],
-                      size: 18,
-                    ),
-                  ],
-                ),
+                  ),
+                  Icon(
+                    Icons.logout,
+                    color: Colors.grey[500],
+                    size: 18,
+                  ),
+                ],
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildNavItem(IconData icon, String title, int index) {
     bool isSelected = _selectedIndex == index;
