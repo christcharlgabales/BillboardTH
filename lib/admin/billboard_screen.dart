@@ -106,10 +106,10 @@ class _BillboardScreenState extends State<BillboardScreen> {
       
       final activeAlerts = await supabaseService.client
           .from('alerts')
-          .select('billboard_id');
+          .select('billboardid');
       
       final activeBillboardIds = Set<int>.from(
-        activeAlerts.map((alert) => alert['billboard_id'] as int)
+        activeAlerts.map((alert) => alert['billboardid'] as int)
       );
       
       print('Active billboard IDs from database: $activeBillboardIds');
@@ -1412,7 +1412,7 @@ class _BillboardScreenState extends State<BillboardScreen> {
                   await supabaseService.client
                       .from('billboard')
                       .delete()
-                      .eq('billboard_id', billboard.billboardId);
+                      .eq('billboardid', billboard.billboardId);
                   
                   await _loadBillboards();
                   Navigator.of(context).pop();
