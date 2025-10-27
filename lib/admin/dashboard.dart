@@ -135,7 +135,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
       return 'Welcome Back Admin!';
     }
     
-    return 'Welcome Back $displayName!';
+    return 'Welcome back, $displayName!';
   }
 
   Future<void> _showLogoutDialog() async {
