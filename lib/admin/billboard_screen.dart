@@ -1309,152 +1309,161 @@ class _BillboardScreenState extends State<BillboardScreen> {
   }
 
   void _showDeleteConfirmation(Billboard billboard) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Container(
-            padding: EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: Colors.grey[300]!, width: 1),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.warning_outlined,
-                    color: Colors.red,
-                    size: 24,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Text(
-                  'Delete Billboard',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: darkBrown,
-                  ),
-                ),
-              ],
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Container(
+          padding: EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: Colors.grey[300]!, width: 1),
             ),
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
+          child: Row(
             children: [
-              Text(
-                'Are you sure you want to delete this billboard?',
-                style: TextStyle(fontSize: 16, color: Colors.grey[800]),
-              ),
-              SizedBox(height: 16),
               Container(
-                padding: EdgeInsets.all(12),
+                padding: EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.05),
+                  color: Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.withOpacity(0.2)),
                 ),
-                child: Column(
-                  children: [
-                    Text(
-                      'Billboard ${billboard.billboardNumber}',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: darkBrown,
-                      ),
-                    ),
-                    Text(
-                      billboard.location,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
+                child: Icon(
+                  Icons.warning_outlined,
+                  color: Colors.red,
+                  size: 24,
                 ),
               ),
-              SizedBox(height: 16),
+              SizedBox(width: 12),
               Text(
-                'This action cannot be undone.',
+                'Delete Billboard',
                 style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.red[700],
-                  fontWeight: FontWeight.w500,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: darkBrown,
                 ),
               ),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.grey[600],
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-              child: Text('Cancel'),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Are you sure you want to delete this billboard?',
+              style: TextStyle(fontSize: 16, color: Colors.grey[800]),
             ),
-            ElevatedButton(
-              onPressed: () async {
-                try {
-                  final supabaseService = Provider.of<SupabaseService>(context, listen: false);
-                  
-                  await supabaseService.client
-                      .from('billboard')
-                      .delete()
-                      .eq('billboardid', billboard.billboardId);
-                  
-                  await _loadBillboards();
-                  Navigator.of(context).pop();
-                  
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Billboard deleted successfully!'),
-                      backgroundColor: Colors.red,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                } catch (e) {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Error deleting billboard: $e'),
-                      backgroundColor: Colors.red,
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
+            SizedBox(height: 16),
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.red.withOpacity(0.2)),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+              child: Column(
                 children: [
-                  Icon(Icons.delete, size: 18),
-                  SizedBox(width: 4),
-                  Text('Delete'),
+                  Text(
+                    'Billboard ${billboard.billboardNumber}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: darkBrown,
+                    ),
+                  ),
+                  Text(
+                    billboard.location,
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                  ),
                 ],
               ),
             ),
+            SizedBox(height: 16),
+            Text(
+              'This action cannot be undone.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.red[700],
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
-        );
-      },
-    );
-  }
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            style: TextButton.styleFrom(
+              foregroundColor: Colors.grey[600],
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+                
+                // 🛑 FIX 1: Delete dependent records in the 'alertlog' table first.
+                // This prevents the Foreign Key Constraint violation.
+                // We use 'billboardid' as the column name based on the previous fix.
+                await supabaseService.client
+                    .from('alertlog')
+                    .delete()
+                    .eq('billboardid', billboard.billboardId);
+                
+                // 🛑 FIX 2: Now delete the main 'billboard' record.
+                await supabaseService.client
+                    .from('billboard')
+                    .delete()
+                    .eq('billboardid', billboard.billboardId);
+
+                _loadBillboards();
+                Navigator.of(context).pop();
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Billboard deleted successfully!'),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              } catch (e) {
+                Navigator.of(context).pop();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error deleting billboard: $e'),
+                    backgroundColor: Colors.red,
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.delete, size: 18),
+                SizedBox(width: 4),
+                Text('Delete'),
+              ],
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}
 }
