@@ -106,7 +106,7 @@ class _BillboardScreenState extends State<BillboardScreen> {
       
       final activeAlerts = await supabaseService.client
           .from('alerts')
-          .select('billboardid');
+          .select('billboard_id');
       
       final activeBillboardIds = Set<int>.from(
         activeAlerts.map((alert) => alert['billboardid'] as int)
