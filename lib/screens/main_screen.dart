@@ -36,8 +36,8 @@ class _MainScreenState extends State<MainScreen> {
   Position? _lastCameraPosition;
   List<Billboard>? _lastBillboardsState;
   // static const double _cameraUpdateThreshold = 0.001; // ~100m threshold
-  static const Duration _cameraUpdateDelay = Duration(milliseconds: 500);
-  static const Duration _markerUpdateDelay = Duration(milliseconds: 300);
+  static const Duration _cameraUpdateDelay = Duration(milliseconds: 100);
+  static const Duration _markerUpdateDelay = Duration(milliseconds: 100);
   
   // Billboard alert constants
   static const double BILLBOARD_RADIUS = 500.0; 
@@ -120,87 +120,116 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   void _checkBillboardProximity(Position userPosition, SupabaseService supabaseService) {
-    if (!mounted) return;
-    
-    final evRegistration = supabaseService.getCurrentEvRegistration();
-    
-    // Don't check proximity if no valid registration
-    if (evRegistration == 'UNKNOWN_VEHICLE') {
-      print('⚠️ Skipping proximity check - no valid EV registration');
-      return;
-    }
-    
-    for (Billboard billboard in supabaseService.billboards) {
-      double distance = Geolocator.distanceBetween(
-        userPosition.latitude, 
-        userPosition.longitude,
-        billboard.latitude, 
-        billboard.longitude
-      );
+  if (!mounted) return;
+  
+  final evRegistration = supabaseService.getCurrentEvRegistration();
+  
+  if (evRegistration == 'UNKNOWN_VEHICLE') {
+    print('⚠️ Skipping proximity check - no valid EV registration');
+    return;
+  }
+  
+  print('📍 Checking proximity from: ${userPosition.latitude}, ${userPosition.longitude}');
+  
+  for (Billboard billboard in supabaseService.billboards) {
+    double distance = Geolocator.distanceBetween(
+      userPosition.latitude, 
+      userPosition.longitude,
+      billboard.latitude, 
+      billboard.longitude
+    );
 
-      bool isWithinRadius = distance <= BILLBOARD_RADIUS;
-      bool wasActive = _activeBillboards.contains(billboard.billboardId);
+    bool isWithinRadius = distance <= BILLBOARD_RADIUS;
+    bool wasActive = _activeBillboards.contains(billboard.billboardId);
 
-      if (isWithinRadius && !wasActive) {
-        _activateBillboard(billboard, supabaseService, evRegistration);
-      } else if (!isWithinRadius && wasActive) {
-        _deactivateBillboard(billboard, supabaseService, evRegistration);
-      }
+    print('🎯 Billboard ${billboard.billboardNumber}: ${distance.toStringAsFixed(2)}m away');
+
+    if (isWithinRadius && !wasActive) {
+      // Activate billboard
+      _activateBillboard(billboard, supabaseService, evRegistration, distance);
+    } else if (isWithinRadius && wasActive) {
+      // ✅ UPDATE DISTANCE FOR ACTIVE BILLBOARD
+      supabaseService.updateAlertDistance(billboard.billboardId, evRegistration, distance);
+    } else if (!isWithinRadius && wasActive) {
+      // Deactivate billboard
+      _deactivateBillboard(billboard, supabaseService, evRegistration);
     }
   }
+  
+  print('✅ Active billboards: $_activeBillboards');
+}
 
-  void _activateBillboard(Billboard billboard, SupabaseService supabaseService, String evRegistration) async {
+void _activateBillboard(Billboard billboard, SupabaseService supabaseService, String evRegistration, double distance) async {
     if (!mounted) return;
+  
+  _activeBillboards.add(billboard.billboardId);
+  supabaseService.updateBillboardStatus(billboard.billboardId, true);
+  
+  // ✅ Calculate distance to billboard
+  final locationService = Provider.of<LocationService>(context, listen: false);
+  double distance = 100.0; // Default fallback
+  
+  if (locationService.currentPosition != null) {
+    distance = Geolocator.distanceBetween(
+      locationService.currentPosition!.latitude,
+      locationService.currentPosition!.longitude,
+      billboard.latitude,
+      billboard.longitude,
+    );
+  }
+  
+  try {
+    // ✅ Pass distance to triggerAlert
+    final success = await supabaseService.triggerAlert(
+      billboard.billboardId, 
+      evRegistration,
+      distance  // Add distance parameter
+    );
     
-    _activeBillboards.add(billboard.billboardId);
-    supabaseService.updateBillboardStatus(billboard.billboardId, true);
-    
-    // Trigger alert with error handling
-    try {
-      final success = await supabaseService.triggerAlert(billboard.billboardId, evRegistration);
-      if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text("🚨 EMERGENCY ALERT: Billboard ${billboard.billboardNumber} activated!"),
-            backgroundColor: Color(0xFFD32F2F),
-            duration: Duration(seconds: 3),
-          ),
-        );
-        print('✅ Billboard ${billboard.billboardNumber} ACTIVATED (proximity)');
-      } else {
-        print('❌ Failed to trigger alert for Billboard ${billboard.billboardNumber}');
-        _activeBillboards.remove(billboard.billboardId);
-        supabaseService.updateBillboardStatus(billboard.billboardId, false);
-      }
-    } catch (e) {
-      print('❌ Error activating billboard: $e');
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("🚨 EMERGENCY ALERT: Billboard ${billboard.billboardNumber} activated at ${distance.toStringAsFixed(0)}m!"),
+          backgroundColor: Color(0xFFD32F2F),
+          duration: Duration(seconds: 3),
+        ),
+      );
+      print('✅ Billboard ${billboard.billboardNumber} ACTIVATED at ${distance.toStringAsFixed(0)}m (proximity)');
+    } else {
+      print('❌ Failed to trigger alert for Billboard ${billboard.billboardNumber}');
       _activeBillboards.remove(billboard.billboardId);
       supabaseService.updateBillboardStatus(billboard.billboardId, false);
     }
-  }
-
-  void _deactivateBillboard(Billboard billboard, SupabaseService supabaseService, String evRegistration) async {
-    if (!mounted) return;
-    
+  } catch (e) {
+    print('❌ Error activating billboard: $e');
     _activeBillboards.remove(billboard.billboardId);
     supabaseService.updateBillboardStatus(billboard.billboardId, false);
-    
-    try {
-      await supabaseService.manualActivation(billboard.billboardId, evRegistration, false);
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text("✅ Billboard ${billboard.billboardNumber} deactivated (out of range)"),
-          backgroundColor: Color(0xFF388E3C),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      
-      print('✅ Billboard ${billboard.billboardNumber} DEACTIVATED (out of range)');
-    } catch (e) {
-      print('❌ Error deactivating billboard: $e');
-    }
   }
+}
+
+  void _deactivateBillboard(Billboard billboard, SupabaseService supabaseService, String evRegistration) async {
+  if (!mounted) return;
+  
+  _activeBillboards.remove(billboard.billboardId);
+  supabaseService.updateBillboardStatus(billboard.billboardId, false);
+  
+  try {
+    // Pass 0.0 as distance for deactivation (not needed but for consistency)
+    await supabaseService.manualActivation(billboard.billboardId, evRegistration, false, 0.0);
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("✅ Billboard ${billboard.billboardNumber} deactivated (out of range)"),
+        backgroundColor: Color(0xFF388E3C),
+        duration: Duration(seconds: 2),
+      ),
+    );
+    
+    print('✅ Billboard ${billboard.billboardNumber} DEACTIVATED (out of range)');
+  } catch (e) {
+    print('❌ Error deactivating billboard: $e');
+  }
+}
 
   void _stopAllBillboardAlerts() async {
     if (!mounted) return;
@@ -831,56 +860,69 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  void _manualToggleBillboard(Billboard billboard) async {
-    if (!mounted) return;
+ void _manualToggleBillboard(Billboard billboard) async {
+  if (!mounted) return;
+  
+  final supabaseService = Provider.of<SupabaseService>(context, listen: false);
+  final locationService = Provider.of<LocationService>(context, listen: false);
+  final evRegistration = supabaseService.getCurrentEvRegistration();
+  final newState = !billboard.isActivated;
+  
+  // ✅ Calculate distance to billboard
+  double distance = 0.0;
+  if (locationService.currentPosition != null) {
+    distance = Geolocator.distanceBetween(
+      locationService.currentPosition!.latitude,
+      locationService.currentPosition!.longitude,
+      billboard.latitude,
+      billboard.longitude,
+    );
+  }
+  
+  try {
+    // Update local state first
+    supabaseService.updateBillboardStatus(billboard.billboardId, newState);
     
-    final supabaseService = Provider.of<SupabaseService>(context, listen: false);
-    final evRegistration = supabaseService.getCurrentEvRegistration();
-    final newState = !billboard.isActivated;
+    // Attempt manual activation/deactivation with distance
+    final success = await supabaseService.manualActivation(
+      billboard.billboardId, 
+      evRegistration, 
+      newState,
+      distance  // ✅ Pass distance
+    );
     
-    try {
-      // Update local state first
-      supabaseService.updateBillboardStatus(billboard.billboardId, newState);
-      
-      // Attempt manual activation/deactivation
-      final success = await supabaseService.manualActivation(
-        billboard.billboardId, 
-        evRegistration, 
-        newState
+    if (success) {
+      setState(() {
+        if (newState) {
+          _activeBillboards.add(billboard.billboardId);
+        } else {
+          _activeBillboards.remove(billboard.billboardId);
+        }
+      });
+
+      // Show feedback to user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            newState
+                ? "✅ Billboard ${billboard.billboardNumber} manually activated at ${distance.toStringAsFixed(0)}m!"
+                : "✅ Billboard ${billboard.billboardNumber} manually deactivated!",
+          ),
+          backgroundColor: newState ? Color(0xFF388E3C) : Color(0xFF1976D2),
+          duration: Duration(seconds: 2),
+        ),
       );
       
-      if (success) {
-        setState(() {
-          if (newState) {
-            _activeBillboards.add(billboard.billboardId);
-          } else {
-            _activeBillboards.remove(billboard.billboardId);
-          }
-        });
-
-        // Show feedback to user
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              newState
-                  ? "✅ Billboard ${billboard.billboardNumber} manually activated!"
-                  : "✅ Billboard ${billboard.billboardNumber} manually deactivated!",
-            ),
-            backgroundColor: newState ? Color(0xFF388E3C) : Color(0xFF1976D2),
-            duration: Duration(seconds: 2),
-          ),
-        );
-        
-        print('🔧 Billboard ${billboard.billboardNumber} manually ${newState ? 'activated' : 'deactivated'}');
-        
-        // Force update markers
-        _updateMarkers(supabaseService.billboards);
-        
-      } else {
-        // Revert local state if operation failed
-        supabaseService.updateBillboardStatus(billboard.billboardId, !newState);
-        _showError('Failed to ${newState ? 'activate' : 'deactivate'} billboard. Please try again.');
-      }
+      print('🔧 Billboard ${billboard.billboardNumber} manually ${newState ? 'activated' : 'deactivated'} at ${distance.toStringAsFixed(0)}m');
+      
+      // Force update markers
+      _updateMarkers(supabaseService.billboards);
+      
+    } else {
+      // Revert local state if operation failed
+      supabaseService.updateBillboardStatus(billboard.billboardId, !newState);
+      _showError('Failed to ${newState ? 'activate' : 'deactivate'} billboard. Please try again.');
+    }
   } catch (e) {
     print('❌ Error in manual toggle: $e');
     // Revert the local state

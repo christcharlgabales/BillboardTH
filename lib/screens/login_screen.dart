@@ -117,7 +117,7 @@ class _LoginScreenState extends State<LoginScreen> with TickerProviderStateMixin
     return Scaffold(
       body: Container(
         width: double.infinity,
-        height: double.infinity, // Ensure container fills entire screen
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
