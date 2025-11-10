@@ -1265,20 +1265,20 @@ class _BillboardScreenState extends State<BillboardScreen> {
                                                     ],
                                                   ),
                                                 ),
-                                                PopupMenuItem(
-                                                  value: 'toggle',
-                                                  child: Row(
-                                                    children: [
-                                                      Icon(
-                                                        billboard.isActivated ? Icons.toggle_off : Icons.toggle_on, 
-                                                        size: 16, 
-                                                        color: billboard.isActivated ? Colors.red : Colors.green,
-                                                      ),
-                                                      SizedBox(width: 8),
-                                                      Text(billboard.isActivated ? 'Deactivate' : 'Activate'),
-                                                    ],
-                                                  ),
-                                                ),
+                                                // PopupMenuItem(
+                                                //   value: 'toggle',
+                                                //   child: Row(
+                                                //     children: [
+                                                //       Icon(
+                                                //         billboard.isActivated ? Icons.toggle_off : Icons.toggle_on, 
+                                                //         size: 16, 
+                                                //         color: billboard.isActivated ? Colors.red : Colors.green,
+                                                //       ),
+                                                //       SizedBox(width: 8),
+                                                //       Text(billboard.isActivated ? 'Deactivate' : 'Activate'),
+                                                //     ],
+                                                //   ),
+                                                // ),
                                                 PopupMenuItem(
                                                   value: 'delete',
                                                   child: Row(

@@ -43,5 +43,4 @@
     uses-material-design: true
     assets:
       - assets/icon.jpg
-      - assets/icon.svg
       - .env

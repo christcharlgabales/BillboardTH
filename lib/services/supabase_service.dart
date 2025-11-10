@@ -102,6 +102,20 @@ Future<EmergencyVehicle?> getEmergencyVehicleDetails(String evRegistrationNo) as
     }
   }
 
+Future<void> updateAlertDistance(int billboardId, String evRegistrationNo, double distanceMeters) async {
+  try {
+    // Update distance in alerts table for active alert
+    await _client
+        .from('alerts')
+        .update({'distance_meters': distanceMeters.round()})
+        .eq('billboard_id', billboardId)
+        .eq('ev_registration_no', evRegistrationNo);
+    
+    print('✅ Updated distance for Billboard $billboardId: ${distanceMeters.toStringAsFixed(0)}m');
+  } catch (e) {
+    print('❌ Error updating alert distance: $e');
+  }
+}
 
 
   @override
@@ -353,95 +367,96 @@ Future<void> checkForDuplicates(String email) async {
   // EXISTING FUNCTIONALITY CONTINUES...
 
   // FIXED: Enhanced alert triggering with proper error handling
-  Future<bool> triggerAlert(int billboardId, String evRegistrationNo) async {
-    print('🚨 TRIGGERING ALERT - Billboard: $billboardId, Vehicle: $evRegistrationNo');
+ Future<bool> triggerAlert(int billboardId, String evRegistrationNo, [double distanceMeters = 100.0]) async {
+  print('🚨 TRIGGERING ALERT - Billboard: $billboardId, Vehicle: $evRegistrationNo, Distance: ${distanceMeters.toStringAsFixed(0)}m');
+  
+  try {
+    // Step 1: Verify billboard exists
+    final billboardExists = await _client
+        .from('billboard')
+        .select('billboardid')
+        .eq('billboardid', billboardId)
+        .maybeSingle();
     
-    try {
-      // Step 1: Verify billboard exists
-      final billboardExists = await _client
-          .from('billboard')
-          .select('billboardid')
-          .eq('billboardid', billboardId)
-          .maybeSingle();
-      
-      if (billboardExists == null) {
-        print('❌ Billboard $billboardId does not exist');
-        return false;
-      }
-
-      // Step 2: Verify emergency vehicle exists  
-      final vehicleExists = await _client
-          .from('emergencyvehicle')
-          .select('ev_registration_no')
-          .eq('ev_registration_no', evRegistrationNo)
-          .maybeSingle();
-      
-      if (vehicleExists == null) {
-        print('❌ Emergency vehicle $evRegistrationNo does not exist');
-        return false;
-      }
-
-      final now = DateTime.now();
-      final timestamp = now.toIso8601String();
-      
-      // Step 3: Insert into alerts table (UUID is auto-generated)
-      print('🔍 Inserting into alerts table...');
-      final alertsData = {
-        'ev_registration_no': evRegistrationNo,
-        'billboard_id': billboardId,
-        'triggered_at': timestamp,
-      };
-      
-      final alertResult = await _client
-          .from('alerts')
-          .insert(alertsData)
-          .select('id'); // Return the generated UUID
-      
-      print('✅ Alert inserted successfully: ${alertResult.first['id']}');
-
-      // Step 4: Insert into alertlog table (alertid is auto-generated)
-      print('🔍 Inserting into alertlog table...');
-      final alertLogData = {
-        'date': timestamp.split('T')[0], // Extract date part (YYYY-MM-DD)
-        'time': timestamp.split('T')[1].split('.')[0], // Extract time part (HH:MM:SS)
-        'billboardid': billboardId,
-        'ev_registration_no': evRegistrationNo,
-        'type_of_activation': 'PROXIMITY_AUTO',
-        'result': 'SUCCESS',
-        'created_at': timestamp,
-      };
-      
-      final logResult = await _client
-          .from('alertlog')
-          .insert(alertLogData)
-          .select('alertid');
-      
-      print('✅ Alert log inserted successfully: ${logResult.first['alertid']}');
-      print('🎉 ALERT TRIGGERED SUCCESSFULLY for Billboard $billboardId');
-      
-      return true;
-      
-    } catch (e) {
-      print('❌ ERROR TRIGGERING ALERT: $e');
-      
-      // Enhanced error logging with more details
-      if (e is PostgrestException) {
-        print('❌ PostgreSQL Error:');
-        print('   Code: ${e.code}');
-        print('   Message: ${e.message}');
-        print('   Details: ${e.details}');
-        print('   Hint: ${e.hint}');
-      }
-      
-      // Log the failed attempt to alertlog
-      await _logFailedAttempt(billboardId, evRegistrationNo, 'PROXIMITY_AUTO', e.toString());
-      
+    if (billboardExists == null) {
+      print('❌ Billboard $billboardId does not exist');
       return false;
     }
+
+    // Step 2: Verify emergency vehicle exists  
+    final vehicleExists = await _client
+        .from('emergencyvehicle')
+        .select('ev_registration_no')
+        .eq('ev_registration_no', evRegistrationNo)
+        .maybeSingle();
+    
+    if (vehicleExists == null) {
+      print('❌ Emergency vehicle $evRegistrationNo does not exist');
+      return false;
+    }
+
+    final now = DateTime.now();
+    final timestamp = now.toIso8601String();
+    
+    // Step 3: Insert into alerts table with distance
+    print('🔍 Inserting into alerts table with distance: ${distanceMeters.toStringAsFixed(0)}m');
+    final alertsData = {
+      'ev_registration_no': evRegistrationNo,
+      'billboard_id': billboardId,
+      'triggered_at': timestamp,
+      'distance_meters': distanceMeters.round(),  // ✅ Add distance!
+    };
+    
+    final alertResult = await _client
+        .from('alerts')
+        .insert(alertsData)
+        .select('id'); // Return the generated UUID
+    
+    print('✅ Alert inserted successfully: ${alertResult.first['id']} with distance: ${distanceMeters.toStringAsFixed(0)}m');
+
+    // Step 4: Insert into alertlog table
+    print('🔍 Inserting into alertlog table...');
+    final alertLogData = {
+      'date': timestamp.split('T')[0], // Extract date part (YYYY-MM-DD)
+      'time': timestamp.split('T')[1].split('.')[0], // Extract time part (HH:MM:SS)
+      'billboardid': billboardId,
+      'ev_registration_no': evRegistrationNo,
+      'type_of_activation': 'PROXIMITY_AUTO',
+      'result': 'SUCCESS - Distance: ${distanceMeters.toStringAsFixed(0)}m',
+      'created_at': timestamp,
+    };
+    
+    final logResult = await _client
+        .from('alertlog')
+        .insert(alertLogData)
+        .select('alertid');
+    
+    print('✅ Alert log inserted successfully: ${logResult.first['alertid']}');
+    print('🎉 ALERT TRIGGERED SUCCESSFULLY for Billboard $billboardId at ${distanceMeters.toStringAsFixed(0)}m');
+    
+    return true;
+    
+  } catch (e) {
+    print('❌ ERROR TRIGGERING ALERT: $e');
+    
+    // Enhanced error logging with more details
+    if (e is PostgrestException) {
+      print('❌ PostgreSQL Error:');
+      print('   Code: ${e.code}');
+      print('   Message: ${e.message}');
+      print('   Details: ${e.details}');
+      print('   Hint: ${e.hint}');
+    }
+    
+    // Log the failed attempt to alertlog
+    await _logFailedAttempt(billboardId, evRegistrationNo, 'PROXIMITY_AUTO', e.toString());
+    
+    return false;
   }
+}
 
   // FIXED: Enhanced manual activation
-  Future<bool> manualActivation(int billboardId, String evRegistrationNo, bool isActivating) async {
+ Future<bool> manualActivation(int billboardId, String evRegistrationNo, bool isActivating, [double distanceMeters = 0.0]) async {
   print('🔧 MANUAL ${isActivating ? 'ACTIVATION' : 'DEACTIVATION'} - Billboard: $billboardId');
   
   try {
@@ -455,7 +470,7 @@ Future<void> checkForDuplicates(String email) async {
       'billboardid': billboardId,
       'ev_registration_no': evRegistrationNo,
       'type_of_activation': isActivating ? 'MANUAL_ACTIVATE' : 'MANUAL_DEACTIVATE',
-      'result': 'SUCCESS',
+      'result': isActivating ? 'SUCCESS - Distance: ${distanceMeters.toStringAsFixed(0)}m' : 'SUCCESS',
       'created_at': timestamp,
     };
     
@@ -468,10 +483,11 @@ Future<void> checkForDuplicates(String email) async {
         'ev_registration_no': evRegistrationNo,
         'billboard_id': billboardId,
         'triggered_at': timestamp,
+        'distance_meters': distanceMeters.round(),  // ✅ Add distance
       };
       
       await _client.from('alerts').insert(alertsData);
-      print('✅ Manual activation alert inserted');
+      print('✅ Manual activation alert inserted with distance: ${distanceMeters.toStringAsFixed(0)}m');
     } else {
       // For deactivation, remove from alerts table
       await _client
